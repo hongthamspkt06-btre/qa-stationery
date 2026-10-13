@@ -278,8 +278,6 @@
   <div class="header-bar">
     <div class="header-title">QA Stationery Purchase</div>
     <div class="header-right">
-      <span class="sync-chip" id="syncStatus" data-state="loading" title="Connection to Google Sheet">Loading…</span>
-      <button class="btn-reload" id="reloadBtn" type="button" title="Reload items, photos and entries from Google Sheet">&#8635; Reload</button>
       <button class="btn-export" id="exportBtn" type="button">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 3v12m0 0-4-4m4 4 4-4M5 19h14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -368,39 +366,41 @@
   <div class="tab-panel" id="tab-summary">
     <div class="block">
       <div class="list-header">
-        <div class="block-title">Total Stationery Cost by Team (VND)</div>
+        <div class="list-title-wrap">
+          <div class="block-title">Stationery Cost by Team (VND)</div>
+          <span class="list-period" id="sumPeriodNote"></span>
+        </div>
         <div class="list-search">
           <div class="search-item"><label for="sumYear">Year</label><select id="sumYear"></select></div>
           <div class="search-item"><label for="sumMonth">Month</label><select id="sumMonth"></select></div>
         </div>
       </div>
-      <div class="sum-sub" id="sumPeriodNote"></div>
       <div id="chartBar"></div>
     </div>
 
     <div class="sum-row">
       <div class="block">
         <div class="block-title">Cost Share by Team</div>
-        <div class="sum-sub">Same Year / Month as the chart above</div>
         <div id="chartPie"></div>
       </div>
       <div class="block">
         <div class="block-title">Cost Structure by Team (by item group)</div>
-        <div class="sum-sub">Same Year / Month as the chart above &middot; 100% = total cost of each team</div>
         <div id="chartStack"></div>
       </div>
     </div>
 
     <div class="block">
       <div class="list-header">
-        <div class="block-title">Items Purchased</div>
+        <div class="list-title-wrap">
+          <div class="block-title">By Item</div>
+          <span class="list-period" id="itemsNote"></span>
+        </div>
         <div class="list-search">
           <div class="search-item"><label for="sumYear2">Year</label><select id="sumYear2"></select></div>
           <div class="search-item"><label for="sumMonth2">Month</label><select id="sumMonth2"></select></div>
           <div class="search-item"><label for="sumTeam2">Team</label><select id="sumTeam2"></select></div>
         </div>
       </div>
-      <div class="sum-sub" id="itemsNote"></div>
       <div id="chartItems"></div>
     </div>
   </div>
@@ -426,7 +426,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
 <script>
   // ---- Config ----
   // Web app URL of the Apps Script deployment (Deploy > Manage deployments > Web app URL, ends with /exec)
-  const API_URL = 'https://script.google.com/macros/s/AKfycbwbA4ZBCWr68EkC1uifzK0WBoKvkyROyaBhY-taeuyMIOp2dHVRt-Ca0DfM37bz7BDl/exec';
+  const API_URL = 'PASTE_WEB_APP_URL_HERE';
   let PHOTO_IMGS = {}, PHOTO_OF = {};          // photos for the Excel export (loaded from the sheet on first export)
 
   // ---- Tabs ----
@@ -666,12 +666,13 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     return j;
   }
 
-  const syncEl = document.getElementById('syncStatus');
+  const syncEl = document.getElementById('syncStatus');   // chip removed from the page: setSync does nothing visible
   function setSync(state){
     const text = {
       loading: 'Loading…', synced: 'Synced', saving: 'Saving…', noapi: 'API URL not set', error: 'Cannot load data',
       offline: 'Offline · ' + pendingOps.length + ' unsaved'
     }[state];
+    if(!syncEl) return;
     syncEl.textContent = text;
     syncEl.dataset.state = state;
   }
@@ -1214,12 +1215,6 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     }
   });
 
-  // Reload everything from the Google Sheet (items, entries; photos are re-read on the next export)
-  document.getElementById('reloadBtn').addEventListener('click', async () => {
-    photosState.force = true;
-    exitReviseMode(); resetItemFields();
-    if(await loadRemote(false)) showToast('Reloaded from Google Sheet');
-  });
   // Coming back to the tab after a while: quietly pick up changes made by other people
   document.addEventListener('visibilitychange', () => {
     if(document.visibilityState === 'visible' && Date.now() - lastLoadAt > 60000 &&
@@ -1381,7 +1376,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const y = sumEls.y1.value, m = sumEls.m1.value;
     const list = entries.filter(e => periodMatch(e, y, m));
     const total = list.reduce((s, e) => s + entryCost(e), 0);
-    document.getElementById('sumPeriodNote').textContent = periodText(y, m) + ' · Total: ' + fmtNum(total) + ' VND';
+    document.getElementById('sumPeriodNote').textContent = 'Total: ' + fmtNum(total) + ' VND';
     document.getElementById('chartBar').innerHTML = renderBarChart(list);
     document.getElementById('chartPie').innerHTML = renderPieChart(list);
     document.getElementById('chartStack').innerHTML = renderStackChart(list);
@@ -1396,7 +1391,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     });
     const rows = Array.from(agg.values()).sort((a, b) => b.cost - a.cost);
     const total = rows.reduce((s, r) => s + r.cost, 0);
-    document.getElementById('itemsNote').textContent = periodText(y, m) + ' · ' + (t || 'All teams') + ' · ' + rows.length + ' items · Total: ' + fmtNum(total) + ' VND';
+    document.getElementById('itemsNote').textContent = 'Total: ' + fmtNum(total) + ' VND';
     const box = document.getElementById('chartItems');
     if(!rows.length){ box.innerHTML = emptyHtml(); return; }
     const max = rows[0].cost || 1;
