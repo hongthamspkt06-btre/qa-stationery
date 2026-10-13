@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QA STATIONERY PURCHASE</title>
+<style>
+  :root{
+    --navy:#1B3A63;
+    --green:#1E8E5A;
+    --green-hover:#187a4d;
+    --bg:#D5D8DC;
+    --white:#FFFFFF;
+    --border:#C3C8CE;
+    --text:#232A31;
+    --text-muted:#5C6670;
+  }
+  *{ box-sizing:border-box; }
+  html, body{
+    margin:0; padding:0; background:var(--bg);
+    font-family:"Segoe UI","Malgun Gothic",Arial,sans-serif;
+    color:var(--text); font-size:12px;
+  }
+  body *{ font-family:inherit; }
+  .page{ padding:4.76mm; max-width:1221.6px; margin:0 auto; }
+
+  /* Header */
+  .header-bar{
+    height:15mm; background:var(--navy); border-radius:4px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px; color:var(--white);
+  }
+  .header-title{ font-size:19px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+  .btn-export{
+    height:9.4mm; background:var(--green); color:var(--white); border:none; border-radius:4px;
+    font-size:13px; font-weight:700; padding:0 18px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px; transition:background 0.15s ease;
+  }
+  .btn-export:hover{ background:var(--green-hover); }
+  .btn-export:active{ transform:translateY(1px); }
+  .btn-export:disabled{ opacity:0.6; cursor:wait; }
+  .header-right{ display:flex; align-items:center; gap:10px; }
+  .sync-chip{
+    font-size:11px; font-weight:600; padding:3px 10px; border-radius:11px; white-space:nowrap;
+    background:rgba(255,255,255,0.14); display:inline-flex; align-items:center; gap:6px;
+  }
+  .sync-chip::before{ content:''; width:8px; height:8px; border-radius:50%; background:#9AA5B1; flex:none; }
+  .sync-chip[data-state="synced"]::before{ background:#3DDC84; }
+  .sync-chip[data-state="loading"]::before, .sync-chip[data-state="saving"]::before{ background:#F5C542; }
+  .sync-chip[data-state="offline"]::before, .sync-chip[data-state="error"]::before, .sync-chip[data-state="noapi"]::before{ background:#FF6B6B; }
+  .btn-reload{
+    height:9.4mm; background:transparent; color:var(--white); border:1px solid rgba(255,255,255,0.55); border-radius:4px;
+    font-size:13px; font-weight:600; padding:0 12px; cursor:pointer;
+  }
+  .btn-reload:hover{ background:rgba(255,255,255,0.12); }
+  .btn-export svg{ width:14px; height:14px; flex:none; }
+
+  /* Tabs */
+  .tabs{ display:flex; gap:8px; margin-top:4.76mm; }
+  .tab-btn{
+    font-size:14px; font-weight:600; background:var(--white); color:var(--text);
+    border:1px solid #C9CDD2; padding:9px 22px; cursor:pointer; border-radius:6px;
+    transition:background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .tab-btn:hover:not(.active){ background:#F2F3F5; }
+  .tab-btn.active{ color:var(--white); background:var(--navy); border-color:var(--navy); font-weight:700; }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+
+  /* Blocks */
+  .block{
+    background:var(--white); border-radius:4px; border:1px solid var(--border);
+    margin-top:4.76mm; padding:16px;
+  }
+  .block-title{ font-size:14px; font-weight:700; color:var(--navy); margin:0; }
+  #entry-block{ padding:10px 16px; }
+  .entry-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .field-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)) repeat(2, minmax(0,3fr)) repeat(2, minmax(0,1fr)); gap:8px 10px; align-items:end; }
+  .field input[readonly]{ background:#F2F4F6; color:var(--text); cursor:default; }
+  @media (max-width:900px){ .field-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); } .field-grid .field:nth-child(4), .field-grid .field:nth-child(5){ grid-column:span 2; } }
+  .field{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .field label{
+    font-size:11px; font-weight:600; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .field input[type="date"],
+  .field input[type="text"],
+  .field input[type="number"],
+  .field select,
+  .field textarea{
+    font-family:inherit; font-size:12px; color:var(--text); background:var(--white);
+    border:1px solid #C9CDD2; border-radius:4px; padding:6px 8px; outline:none;
+    transition:border-color 0.15s ease; width:100%; min-width:0;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--navy); }
+  .field input[type="text"], .field input[type="number"], .field select{ height:30px; }
+  .entry-table-wrap::-webkit-scrollbar{ width:12px; height:12px; }
+  .entry-table-wrap::-webkit-scrollbar-track{ background:#EEF0F2; }
+  .entry-table-wrap::-webkit-scrollbar-thumb{ background:#B5BCC4; border-radius:6px; border:2px solid #EEF0F2; }
+  .entry-table-wrap::-webkit-scrollbar-thumb:hover{ background:#8F98A2; }
+  .entry-table-wrap{ scrollbar-color:#B5BCC4 #EEF0F2; }
+  .field textarea{ resize:vertical; min-height:30px; height:30px; }
+
+  .combo{ position:relative; }
+  .combo-list{
+    position:absolute; left:0; right:0; min-width:min(440px, 90vw); top:calc(100% + 2px); z-index:60; max-height:264px; overflow-y:auto;
+    background:var(--white); border:1px solid var(--navy); border-radius:4px; box-shadow:0 6px 18px rgba(0,0,0,0.18);
+  }
+  .combo-list[hidden]{ display:none; }
+  .combo-opt{ padding:6px 8px; cursor:pointer; border-bottom:1px solid #EEF0F2; line-height:1.3; }
+  .combo-opt:last-child{ border-bottom:none; }
+  .combo-opt .vn{ font-size:12px; color:var(--text); }
+  .combo-opt .en{ font-size:11px; color:var(--text-muted); }
+  .combo-opt.active{ background:#DCE9F8; }
+  .combo-opt mark{ background:#FFE9A8; color:inherit; padding:0; }
+  .combo-empty{ padding:8px; font-size:12px; color:var(--text-muted); }
+  .btn-add{
+    height:9.4mm; background:#3B7DDE; color:var(--white); border:none; border-radius:8px;
+    font-size:13px; font-weight:700; padding:0 18px; cursor:pointer; flex:none;
+  }
+  .btn-add:hover{ background:#2E68C4; }
+  .entry-list-empty{ font-size:12px; color:var(--text-muted); padding:8px 0; }
+
+  /* Entry List: grows with data, capped at ~3x the Entry block height (set by JS) */
+  #entry-list-block{ display:flex; flex-direction:column; max-height:var(--entry-list-max, none); }
+  #entryListContainer{ display:flex; flex-direction:column; flex:0 1 auto; min-height:0; margin-top:10px; }
+  .entry-table-wrap{
+    flex:0 1 auto; min-height:0; overflow-x:hidden; overflow-y:auto;
+    border:1px solid var(--border); border-radius:4px;
+  }
+  /* Entry List = matrix like sheet "order" (A:V). Columns A:E stay frozen while scrolling sideways. */
+  .entry-table-wrap{ overflow-x:auto; }
+  table.entry-table{ table-layout:fixed; border-collapse:separate; border-spacing:0; font-size:12px; min-width:100%; }
+  table.entry-table th, table.entry-table td{
+    text-align:center; vertical-align:middle; padding:6px 2px;
+    border-right:1px solid var(--border); border-bottom:1px solid var(--border);
+    white-space:normal; overflow-wrap:anywhere; background:var(--white);
+  }
+  table.entry-table th:last-child, table.entry-table td:last-child{ border-right:none; padding-left:2px; padding-right:2px; }
+  table.entry-table tbody td{ height:40px; }
+  table.entry-table thead th{
+    position:sticky; top:0; z-index:3; color:var(--navy); background:#DCE9F8; font-weight:700; font-size:10px; padding:6px 1px; overflow-wrap:normal;
+  }
+  table.entry-table th.fz, table.entry-table td.fz{ position:sticky; z-index:2; }
+  table.entry-table thead th.fz{ z-index:4; }
+  table.entry-table th.fz-last, table.entry-table td.fz-last{ box-shadow:2px 0 0 var(--border); }
+  .cell-text{
+    line-height:16px; max-height:32px; overflow:hidden;
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2;
+  }
+  .cell-left{ text-align:left; padding-left:6px !important; }
+  .cell-num{ font-variant-numeric:tabular-nums; }
+  .nowrap{ white-space:nowrap !important; overflow-wrap:normal !important; }
+  td.qty-cell{ font-weight:600; color:var(--navy); padding-left:1px; padding-right:1px; }
+  .qc{ display:flex; align-items:center; justify-content:center; gap:1px; }
+  .qc .qv{ font-size:12px; white-space:nowrap; overflow-wrap:normal; }
+  .cell-edit{
+    flex:none; width:10px; height:10px; padding:0; border:none; background:none; color:var(--navy);
+    opacity:0.28; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  }
+  .cell-edit:hover, .cell-edit:focus-visible{ opacity:1; color:var(--green); outline:none; }
+  .cell-edit svg{ width:9px; height:9px; pointer-events:none; }
+  td.col-total{ font-weight:700; background:#F2F4F6 !important; }
+  table.entry-table tbody tr:hover td:not(.col-total){ background:#F2F4F6; }
+  table.entry-table tfoot td{
+    position:sticky; bottom:0; z-index:3; background:#DCE9F8; color:var(--navy); font-weight:700;
+    border-top:1px solid var(--border); border-bottom:none; height:34px;
+  }
+  table.entry-table tfoot td.fz{ z-index:4; }
+  .list-period{ font-size:12px; font-weight:600; color:var(--text-muted); margin-left:10px; }
+  .list-title-wrap{ display:flex; align-items:baseline; min-width:0; }
+
+  .row-actions{ display:flex; align-items:center; justify-content:center; gap:4px; }
+  .row-delete{
+    width:18px; height:18px; padding:0; display:inline-flex; align-items:center; justify-content:center;
+    background:var(--white); border-radius:4px; cursor:pointer; line-height:1;
+  }
+  .row-delete{ border:1px solid #E74C3C; color:#E74C3C; font-size:11px; font-weight:700; }
+  .row-delete:hover{ background:#FDEDEC; }
+  .row-edit{ border:1px solid var(--green); color:var(--green); }
+  .row-edit:hover{ background:#E6F5ED; }
+  .row-edit svg{ width:10px; height:10px; pointer-events:none; }
+
+  /* Revising indicator */
+  .entry-title-wrap{ display:flex; align-items:center; gap:10px; min-width:0; }
+  .revising-note{ display:inline-flex; align-items:center; gap:8px; font-size:12px; color:var(--green); font-weight:600; }
+  .revising-note[hidden]{ display:none; }
+  .revising-cancel{
+    border:1px solid var(--border); background:var(--white); color:var(--text-muted);
+    border-radius:4px; font-size:11px; padding:2px 8px; cursor:pointer;
+  }
+  .revising-cancel:hover{ background:#F2F3F5; }
+
+  /* Entry List header + search */
+  .list-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .list-search{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .search-item{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; }
+  .search-item input, .search-item select{
+    font-family:inherit; font-size:12px; font-weight:400; color:var(--text);
+    background:var(--white); border:1px solid #C9CDD2; border-radius:4px; padding:5px 8px; outline:none;
+  }
+  .search-item input{ width:80px; }
+  .search-item select{ width:110px; }
+  .search-item input:focus, .search-item select:focus{ border-color:var(--navy); }
+  .search-clear{
+    border:1px solid var(--border); background:var(--white); color:var(--text-muted);
+    border-radius:4px; font-size:12px; padding:5px 10px; cursor:pointer;
+  }
+  .search-clear:hover{ background:#F2F3F5; }
+
+  /* Summary charts */
+  #tab-summary .search-item select{ width:110px; }
+  .sum-sub{ font-size:11px; color:var(--text-muted); margin:2px 0 8px; min-height:14px; }
+  .sum-row{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:4.76mm; }
+  .sum-row .block{ margin-top:4.76mm; }
+  @media (max-width:1000px){ .sum-row{ grid-template-columns:minmax(0,1fr); } }
+  .chart-svg{ width:100%; height:auto; display:block; }
+  .chart-svg text{ font-family:inherit; fill:var(--text); }
+  .chart-svg .ax{ fill:var(--text-muted); font-size:10px; }
+  .chart-svg .val{ font-size:10px; font-weight:700; fill:var(--navy); }
+  .chart-empty{ font-size:12px; color:var(--text-muted); padding:24px 0; text-align:center; }
+  .pie-wrap{ display:flex; flex-wrap:wrap; align-items:center; gap:16px; }
+  .pie-wrap svg{ width:240px; height:240px; flex:none; }
+  .pie-legend{ flex:1 1 200px; min-width:0; font-size:12px; }
+  .pie-legend .lg{ display:grid; grid-template-columns:12px minmax(0,1fr) 46px 88px; gap:6px; align-items:center; padding:2px 0; }
+  .pie-legend .lg .num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .dot{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+  .stk-legend{ display:flex; flex-wrap:wrap; gap:4px 14px; font-size:11px; margin-bottom:8px; }
+  .stk-legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .stk-row{ display:grid; grid-template-columns:78px minmax(0,1fr) 62px; gap:8px; align-items:center; margin:4px 0; font-size:11px; }
+  .stk-row .nm{ font-weight:600; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .stk-row .tot{ font-weight:700; color:var(--navy); text-align:right; font-variant-numeric:tabular-nums; }
+  .stk-bar{ display:flex; height:20px; border-radius:3px; overflow:hidden; background:#EEF0F2; }
+  .stk-bar div{ height:100%; color:#fff; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap; }
+  .items-scroll{ max-height:460px; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:4px 8px; }
+  .it-row{ display:grid; grid-template-columns:minmax(150px,300px) minmax(0,1fr) 190px; gap:10px; align-items:center; padding:4px 0; border-bottom:1px solid #EEF0F2; font-size:12px; }
+  .it-row:last-child{ border-bottom:none; }
+  .it-row .en{ font-size:10px; color:var(--text-muted); }
+  .it-bar{ height:14px; background:#EEF0F2; border-radius:3px; overflow:hidden; }
+  .it-bar div{ height:100%; background:var(--navy); border-radius:3px; }
+  .it-val{ text-align:right; font-variant-numeric:tabular-nums; }
+  .it-val b{ color:var(--navy); }
+  @media (max-width:700px){ .it-row{ grid-template-columns:minmax(0,1fr) 120px; } .it-row .it-bar{ display:none; } }
+
+  /* Toast */
+  .toast{
+    position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%);
+    background:var(--navy); color:var(--white); padding:9px 16px; border-radius:6px;
+    font-size:12px; font-weight:600; z-index:200; max-width:90vw; box-shadow:0 4px 14px rgba(0,0,0,0.25);
+  }
+  .toast[hidden]{ display:none; }
+  .toast.error{ background:#C0392B; }
+
+  /* Confirm dialog */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,30,45,0.45);
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:16px;
+  }
+  .modal-overlay[hidden]{ display:none; }
+  .modal-card{
+    background:var(--white); border-radius:8px; border:1px solid var(--border);
+    box-shadow:0 8px 28px rgba(0,0,0,0.25); padding:20px 24px; min-width:280px; max-width:100%; text-align:center;
+  }
+  .modal-message{ font-size:14px; font-weight:700; color:var(--navy); margin-bottom:16px; }
+  .modal-actions{ display:flex; justify-content:center; gap:10px; }
+  .modal-actions button{ min-width:84px; height:32px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }
+  .btn-yes{ background:var(--navy); color:var(--white); border:1px solid var(--navy); }
+  .btn-yes:hover{ background:#142c4d; }
+  .btn-no{ background:var(--white); color:var(--text); border:1px solid #C9CDD2; }
+  .btn-no:hover{ background:#F2F3F5; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header-bar">
+    <div class="header-title">QA Stationery Purchase</div>
+    <div class="header-right">
+      <span class="sync-chip" id="syncStatus" data-state="loading" title="Connection to Google Sheet">Loading…</span>
+      <button class="btn-reload" id="reloadBtn" type="button" title="Reload items, photos and entries from Google Sheet">&#8635; Reload</button>
+      <button class="btn-export" id="exportBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3v12m0 0-4-4m4 4 4-4M5 19h14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Export Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="purchase" type="button">Purchase</button>
+    <button class="tab-btn" data-tab="summary" type="button">Summary</button>
+  </div>
+
+  <!-- Purchase tab -->
+  <div class="tab-panel active" id="tab-purchase">
+    <div class="block" id="entry-block">
+      <div class="entry-header">
+        <div class="entry-title-wrap">
+          <div class="block-title">Entry</div>
+          <span class="revising-note" id="revisingNote" hidden>
+            <span id="revisingText"></span>
+            <button class="revising-cancel" id="revisingCancel" type="button">Cancel</button>
+          </span>
+        </div>
+        <button class="btn-add" id="addEntryBtn" type="button">+ Add</button>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label for="year">Year</label>
+          <input type="number" id="year" placeholder="Enter year" min="2000" max="2100" step="1">
+        </div>
+        <div class="field">
+          <label for="month">Month</label>
+          <select id="month">
+            <option value="">Select</option>
+            <option>Jan</option><option>Feb</option><option>Mar</option><option>Apr</option>
+            <option>May</option><option>Jun</option><option>Jul</option><option>Aug</option>
+            <option>Sep</option><option>Oct</option><option>Nov</option><option>Dec</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="team">Team</label>
+          <select id="team"><option value="">Select</option></select>
+        </div>
+        <div class="field">
+          <label for="itemVN">Stationery(VN)</label>
+          <div class="combo" id="itemCombo">
+            <input type="text" id="itemVNInput" autocomplete="off" spellcheck="false" placeholder="Type to search..." role="combobox" aria-expanded="false" aria-controls="itemVNList">
+            <input type="hidden" id="itemVN">
+            <div class="combo-list" id="itemVNList" role="listbox" hidden></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="itemEN">Stationery(EN)</label>
+          <input type="text" id="itemEN" readonly tabindex="-1" placeholder="Auto-filled">
+        </div>
+        <div class="field">
+          <label for="unit">Unit</label>
+          <input type="text" id="unit" readonly tabindex="-1" placeholder="Auto-filled">
+        </div>
+        <div class="field">
+          <label for="qty">Qty</label>
+          <input type="number" id="qty" placeholder="Enter qty" min="0" step="any">
+        </div>
+      </div>
+    </div>
+
+    <div class="block" id="entry-list-block">
+      <div class="list-header">
+        <div class="block-title">Entry List</div>
+        <div class="list-search">
+          <div class="search-item"><label for="searchYear">Year</label><input type="number" id="searchYear" placeholder="All"></div>
+          <div class="search-item"><label for="searchMonth">Month</label><select id="searchMonth"></select></div>
+        </div>
+      </div>
+      <div id="entryListContainer">
+        <div class="entry-list-empty" id="entryListEmpty">No entries yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary tab (empty) -->
+  <div class="tab-panel" id="tab-summary">
+    <div class="block">
+      <div class="list-header">
+        <div class="block-title">Total Stationery Cost by Team (VND)</div>
+        <div class="list-search">
+          <div class="search-item"><label for="sumYear">Year</label><select id="sumYear"></select></div>
+          <div class="search-item"><label for="sumMonth">Month</label><select id="sumMonth"></select></div>
+        </div>
+      </div>
+      <div class="sum-sub" id="sumPeriodNote"></div>
+      <div id="chartBar"></div>
+    </div>
+
+    <div class="sum-row">
+      <div class="block">
+        <div class="block-title">Cost Share by Team</div>
+        <div class="sum-sub">Same Year / Month as the chart above</div>
+        <div id="chartPie"></div>
+      </div>
+      <div class="block">
+        <div class="block-title">Cost Structure by Team (by item group)</div>
+        <div class="sum-sub">Same Year / Month as the chart above &middot; 100% = total cost of each team</div>
+        <div id="chartStack"></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="list-header">
+        <div class="block-title">Items Purchased</div>
+        <div class="list-search">
+          <div class="search-item"><label for="sumYear2">Year</label><select id="sumYear2"></select></div>
+          <div class="search-item"><label for="sumMonth2">Month</label><select id="sumMonth2"></select></div>
+          <div class="search-item"><label for="sumTeam2">Team</label><select id="sumTeam2"></select></div>
+        </div>
+      </div>
+      <div class="sum-sub" id="itemsNote"></div>
+      <div id="chartItems"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<div class="modal-overlay" id="confirmOverlay" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirmMessage">
+    <div class="modal-message" id="confirmMessage"></div>
+    <div class="modal-actions">
+      <button class="btn-yes" id="confirmYes" type="button">Yes</button>
+      <button class="btn-no" id="confirmNo" type="button">No</button>
+    </div>
+  </div>
+</div>
+
+<script id="xl-assets">
+// Layout/styles of sheets "purchase request" and "order" (from Stationery_rút gọn.xlsx). Items and photos come from the Google Sheet.
+const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:xdr=\"http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing\" xmlns:x14=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" mc:Ignorable=\"x14ac\" xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\"><sheetPr><pageSetUpPr fitToPage=\"1\"/></sheetPr><dimension ref=\"A1:M29\"/><sheetViews><sheetView showGridLines=\"0\" zoomScale=\"70\" zoomScaleNormal=\"70\" zoomScalePageLayoutView=\"70\" workbookViewId=\"0\"><selection activeCell=\"E13\" sqref=\"E13\"/></sheetView></sheetViews><sheetFormatPr defaultColWidth=\"9\" defaultRowHeight=\"15.75\"/><cols><col min=\"1\" max=\"1\" width=\"5.85546875\" style=\"1\" customWidth=\"1\"/><col min=\"2\" max=\"3\" width=\"51.5703125\" style=\"1\" customWidth=\"1\"/><col min=\"4\" max=\"4\" width=\"13.5703125\" style=\"2\" customWidth=\"1\"/><col min=\"5\" max=\"6\" width=\"17.7109375\" style=\"1\" customWidth=\"1\"/><col min=\"7\" max=\"7\" width=\"21\" style=\"1\" customWidth=\"1\"/><col min=\"8\" max=\"8\" width=\"20.5703125\" style=\"1\" customWidth=\"1\"/><col min=\"9\" max=\"9\" width=\"19.7109375\" style=\"1\" customWidth=\"1\"/><col min=\"10\" max=\"10\" width=\"32.42578125\" style=\"1\" customWidth=\"1\"/><col min=\"11\" max=\"16384\" width=\"9\" style=\"1\"/></cols><sheetData><row r=\"1\" spans=\"1:13\" ht=\"18.75\" customHeight=\"1\"><c r=\"A1\" s=\"3\"/><c r=\"B1\" s=\"3\"/><c r=\"C1\" s=\"3\"/><c r=\"D1\" s=\"4\"/><c r=\"E1\" s=\"4\"/><c r=\"F1\" s=\"4\"/><c r=\"G1\" s=\"4\"/><c r=\"H1\" s=\"4\"/><c r=\"I1\" s=\"5\"/></row><row r=\"2\" spans=\"1:13\" s=\"6\" customFormat=\"1\" ht=\"18.75\" customHeight=\"1\"><c r=\"A2\" s=\"114\" t=\"s\"><v>0</v></c><c r=\"B2\" s=\"114\"/><c r=\"C2\" s=\"114\"/><c r=\"D2\" s=\"114\"/><c r=\"E2\" s=\"114\"/><c r=\"F2\" s=\"114\"/><c r=\"G2\" s=\"114\"/><c r=\"H2\" s=\"114\"/><c r=\"I2\" s=\"114\"/><c r=\"J2\" s=\"114\"/></row><row r=\"3\" spans=\"1:13\" s=\"6\" customFormat=\"1\" ht=\"18.75\" customHeight=\"1\"><c r=\"A3\" s=\"115\" t=\"s\"><v>1</v></c><c r=\"B3\" s=\"115\"/><c r=\"C3\" s=\"115\"/><c r=\"D3\" s=\"115\"/><c r=\"E3\" s=\"115\"/><c r=\"F3\" s=\"115\"/><c r=\"G3\" s=\"115\"/><c r=\"H3\" s=\"115\"/><c r=\"I3\" s=\"115\"/><c r=\"J3\" s=\"115\"/></row><row r=\"4\" spans=\"1:13\" s=\"6\" customFormat=\"1\" ht=\"14.25\" customHeight=\"1\"><c r=\"A4\" s=\"7\"/><c r=\"B4\" s=\"7\"/><c r=\"C4\" s=\"8\"/><c r=\"D4\" s=\"9\"/><c r=\"F4\" s=\"7\"/><c r=\"G4\" s=\"7\"/><c r=\"H4\" s=\"7\"/><c r=\"J4\" s=\"116\"/></row><row r=\"5\" spans=\"1:13\" ht=\"14.25\" customHeight=\"1\"><c r=\"A5\" s=\"10\"/><c r=\"B5\" s=\"10\"/><c r=\"C5\" s=\"10\"/><c r=\"D5\" s=\"11\"/><c r=\"E5\" s=\"10\"/><c r=\"F5\" s=\"10\"/><c r=\"G5\" s=\"10\"/><c r=\"H5\" s=\"10\"/><c r=\"I5\" s=\"10\"/><c r=\"J5\" s=\"117\"/></row><row r=\"6\" spans=\"1:13\" ht=\"14.25\" customHeight=\"1\"><c r=\"A6\" s=\"10\"/><c r=\"B6\" s=\"10\"/><c r=\"C6\" s=\"10\"/><c r=\"D6\" s=\"12\"/><c r=\"E6\" s=\"13\"/><c r=\"F6\" s=\"10\"/><c r=\"G6\" s=\"10\"/><c r=\"H6\" s=\"10\"/><c r=\"I6\" s=\"10\"/><c r=\"J6\" s=\"117\"/></row><row r=\"7\" spans=\"1:13\" ht=\"18.75\" customHeight=\"1\"><c r=\"A7\" s=\"10\"/><c r=\"B7\" s=\"14\" t=\"s\"><v>2</v></c><c r=\"C7\" s=\"15\"/><c r=\"D7\" s=\"118\" t=\"s\"><v>3</v></c><c r=\"E7\" s=\"118\"/><c r=\"F7\" s=\"16\"/><c r=\"G7\" s=\"16\"/><c r=\"H7\" s=\"16\"/><c r=\"I7\" s=\"17\"/><c r=\"J7\" s=\"117\"/></row><row r=\"8\" spans=\"1:13\" ht=\"18.75\" customHeight=\"1\"><c r=\"A8\" s=\"18\"/><c r=\"B8\" s=\"14\" t=\"s\"><v>4</v></c><c r=\"C8\" s=\"15\"/><c r=\"D8\" s=\"119\" t=\"s\"><v>5</v></c><c r=\"E8\" s=\"119\"/><c r=\"F8\" s=\"19\"/><c r=\"G8\" s=\"20\"/><c r=\"H8\" s=\"20\"/><c r=\"I8\" s=\"21\"/><c r=\"J8\" s=\"10\"/></row><row r=\"9\" spans=\"1:13\" ht=\"18.75\" customHeight=\"1\"><c r=\"A9\" s=\"18\"/><c r=\"B9\" s=\"14\" t=\"s\"><v>6</v></c><c r=\"C9\" s=\"15\"/><c r=\"D9\" s=\"22\"/><c r=\"E9\" s=\"19\"/><c r=\"F9\" s=\"20\"/><c r=\"G9\" s=\"20\"/><c r=\"H9\" s=\"124\" t=\"s\"><v>7</v></c><c r=\"I9\" s=\"23\"/><c r=\"J9\" s=\"24\"/></row><row r=\"10\" spans=\"1:13\" ht=\"18.75\" customHeight=\"1\"><c r=\"A10\" s=\"18\"/><c r=\"B10\" s=\"14\" t=\"s\"><v>8</v></c><c r=\"C10\" s=\"15\"/><c r=\"D10\" s=\"22\"/><c r=\"E10\" s=\"19\"/><c r=\"F10\" s=\"20\"/><c r=\"G10\" s=\"20\"/><c r=\"H10\" s=\"20\"/><c r=\"I10\" s=\"21\"/><c r=\"J10\" s=\"10\"/></row><row r=\"11\" spans=\"1:13\" ht=\"8.25\" customHeight=\"1\"><c r=\"A11\" s=\"18\"/><c r=\"B11\" s=\"18\"/><c r=\"C11\" s=\"10\"/><c r=\"D11\" s=\"25\"/><c r=\"E11\" s=\"18\"/><c r=\"F11\" s=\"26\"/><c r=\"G11\" s=\"26\"/><c r=\"H11\" s=\"26\"/><c r=\"I11\" s=\"27\"/><c r=\"J11\" s=\"10\"/></row><row r=\"12\" spans=\"1:13\" s=\"29\" customFormat=\"1\" ht=\"54.75\" customHeight=\"1\"><c r=\"A12\" s=\"28\" t=\"s\"><v>9</v></c><c r=\"B12\" s=\"28\" t=\"s\"><v>344</v></c><c r=\"C12\" s=\"28\" t=\"s\"><v>345</v></c><c r=\"D12\" s=\"28\" t=\"s\"><v>10</v></c><c r=\"E12\" s=\"28\" t=\"s\"><v>11</v></c><c r=\"F12\" s=\"28\" t=\"s\"><v>12</v></c><c r=\"G12\" s=\"28\" t=\"s\"><v>13</v></c><c r=\"H12\" s=\"28\" t=\"s\"><v>14</v></c><c r=\"I12\" s=\"28\" t=\"s\"><v>15</v></c><c r=\"J12\" s=\"28\" t=\"s\"><v>16</v></c><c r=\"L12\" s=\"30\"/><c r=\"M12\" s=\"30\"/></row>", "s1tail": "<row r=\"14\" spans=\"1:13\" s=\"29\" customFormat=\"1\" ht=\"27\" customHeight=\"1\"><c r=\"A14\" s=\"111\" t=\"s\"><v>18</v></c><c r=\"B14\" s=\"111\"/><c r=\"C14\" s=\"111\"/><c r=\"D14\" s=\"111\"/><c r=\"E14\" s=\"111\"/><c r=\"F14\" s=\"111\"/><c r=\"G14\" s=\"39\"><f>SUM(G13:G13)</f><v>0</v></c><c r=\"H14\" s=\"111\"/><c r=\"I14\" s=\"111\"/><c r=\"J14\" s=\"111\"/></row><row r=\"15\" spans=\"1:13\" s=\"29\" customFormat=\"1\" ht=\"27\" customHeight=\"1\"><c r=\"A15\" s=\"112\" t=\"s\"><v>19</v></c><c r=\"B15\" s=\"112\"/><c r=\"C15\" s=\"112\"/><c r=\"D15\" s=\"112\"/><c r=\"E15\" s=\"112\"/><c r=\"F15\" s=\"112\"/><c r=\"G15\" s=\"40\"><f>+G14*8%</f><v>0</v></c><c r=\"H15\" s=\"112\"/><c r=\"I15\" s=\"112\"/><c r=\"J15\" s=\"112\"/></row><row r=\"16\" spans=\"1:13\" s=\"29\" customFormat=\"1\" ht=\"27\" customHeight=\"1\"><c r=\"A16\" s=\"113\" t=\"s\"><v>20</v></c><c r=\"B16\" s=\"113\"/><c r=\"C16\" s=\"113\"/><c r=\"D16\" s=\"113\"/><c r=\"E16\" s=\"113\"/><c r=\"F16\" s=\"113\"/><c r=\"G16\" s=\"41\"><f>+G14+G15</f><v>0</v></c><c r=\"H16\" s=\"113\"/><c r=\"I16\" s=\"113\"/><c r=\"J16\" s=\"113\"/></row><row r=\"17\" spans=\"1:10\" s=\"29\" customFormat=\"1\" ht=\"12.75\" customHeight=\"1\"><c r=\"A17\" s=\"42\"/><c r=\"B17\" s=\"43\"/><c r=\"D17\" s=\"43\"/><c r=\"I17\" s=\"44\"/></row><row r=\"18\" spans=\"1:10\" s=\"29\" customFormat=\"1\" ht=\"47.25\" customHeight=\"1\"><c r=\"A18\" s=\"42\"/><c r=\"B18\" s=\"45\" t=\"s\"><v>21</v></c><c r=\"D18\" s=\"43\"/><c r=\"E18\" s=\"29\" t=\"s\"><v>22</v></c><c r=\"I18\" s=\"109\" t=\"s\"><v>23</v></c><c r=\"J18\" s=\"109\"/></row><row r=\"19\" spans=\"1:10\" s=\"48\" customFormat=\"1\" ht=\"27\" customHeight=\"1\"><c r=\"A19\" s=\"46\"/><c r=\"B19\" s=\"47\"/><c r=\"D19\" s=\"47\"/><c r=\"I19\" s=\"49\"/></row><row r=\"20\" spans=\"1:10\" s=\"48\" customFormat=\"1\" ht=\"27\" customHeight=\"1\"><c r=\"A20\" s=\"46\"/><c r=\"B20\" s=\"47\"/><c r=\"D20\" s=\"47\"/><c r=\"I20\" s=\"49\"/></row><row r=\"21\" spans=\"1:10\" s=\"48\" customFormat=\"1\" ht=\"27\" customHeight=\"1\"><c r=\"A21\" s=\"46\"/><c r=\"B21\" s=\"47\"/><c r=\"D21\" s=\"47\"/><c r=\"I21\" s=\"49\"/></row><row r=\"22\" spans=\"1:10\" s=\"52\" customFormat=\"1\" ht=\"33\" customHeight=\"1\"><c r=\"A22\" s=\"50\"/><c r=\"B22\" s=\"51\" t=\"s\"><v>24</v></c><c r=\"D22\" s=\"53\"/><c r=\"E22\" s=\"54\" t=\"s\"><v>25</v></c><c r=\"I22\" s=\"110\" t=\"s\"><v>26</v></c><c r=\"J22\" s=\"110\"/></row><row r=\"23\" spans=\"1:10\" s=\"48\" customFormat=\"1\" ht=\"33\" customHeight=\"1\"><c r=\"A23\" s=\"46\"/><c r=\"B23\" s=\"47\"/><c r=\"D23\" s=\"47\"/><c r=\"I23\" s=\"49\"/></row><row r=\"24\" spans=\"1:10\" s=\"48\" customFormat=\"1\" ht=\"20.25\" customHeight=\"1\"><c r=\"A24\" s=\"46\"/><c r=\"B24\" s=\"47\"/><c r=\"D24\" s=\"47\"/><c r=\"I24\" s=\"49\"/></row><row r=\"25\" spans=\"1:10\" s=\"48\" customFormat=\"1\" ht=\"20.25\" customHeight=\"1\"><c r=\"A25\" s=\"46\"/><c r=\"B25\" s=\"47\"/><c r=\"D25\" s=\"47\"/><c r=\"I25\" s=\"49\"/></row><row r=\"26\" spans=\"1:10\"><c r=\"A26\" s=\"46\"/><c r=\"B26\" s=\"47\"/><c r=\"C26\" s=\"48\"/><c r=\"D26\" s=\"47\"/><c r=\"E26\" s=\"48\"/><c r=\"F26\" s=\"48\"/><c r=\"G26\" s=\"48\"/><c r=\"H26\" s=\"48\"/><c r=\"I26\" s=\"49\"/><c r=\"J26\" s=\"48\"/></row><row r=\"28\" spans=\"1:10\"><c r=\"A28\" s=\"55\"/></row><row r=\"29\" spans=\"1:10\"><c r=\"C29\" s=\"56\"/><c r=\"D29\" s=\"57\"/><c r=\"E29\" s=\"56\"/><c r=\"F29\" s=\"58\"/><c r=\"G29\" s=\"56\"/><c r=\"H29\" s=\"56\"/><c r=\"I29\" s=\"59\"/></row>", "s1post": "<printOptions horizontalCentered=\"1\"/><pageMargins left=\"0\" right=\"0\" top=\"0.25\" bottom=\"0\" header=\"0.511811023622047\" footer=\"0.511811023622047\"/><pageSetup paperSize=\"9\" fitToHeight=\"0\" orientation=\"portrait\" horizontalDpi=\"300\" verticalDpi=\"300\"/><drawing r:id=\"rId1\"/><legacyDrawing r:id=\"rId2\"/><mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><mc:Choice Requires=\"x14\"><controls><mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><mc:Choice Requires=\"x14\"><control shapeId=\"1025\" r:id=\"rId3\" name=\"Check Box 1\"><controlPr defaultSize=\"0\" autoPict=\"0\"><anchor moveWithCells=\"1\"><from><xdr:col>9</xdr:col><xdr:colOff>200025</xdr:colOff><xdr:row>3</xdr:row><xdr:rowOff>57150</xdr:rowOff></from><to><xdr:col>9</xdr:col><xdr:colOff>1714500</xdr:colOff><xdr:row>4</xdr:row><xdr:rowOff>95250</xdr:rowOff></to></anchor></controlPr></control></mc:Choice></mc:AlternateContent><mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><mc:Choice Requires=\"x14\"><control shapeId=\"1026\" r:id=\"rId4\" name=\"Check Box 2\"><controlPr defaultSize=\"0\" autoPict=\"0\"><anchor moveWithCells=\"1\"><from><xdr:col>9</xdr:col><xdr:colOff>209550</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>57150</xdr:rowOff></from><to><xdr:col>9</xdr:col><xdr:colOff>1714500</xdr:colOff><xdr:row>7</xdr:row><xdr:rowOff>38100</xdr:rowOff></to></anchor></controlPr></control></mc:Choice></mc:AlternateContent><mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><mc:Choice Requires=\"x14\"><control shapeId=\"1027\" r:id=\"rId5\" name=\"Check Box 3\"><controlPr defaultSize=\"0\" autoPict=\"0\"><anchor moveWithCells=\"1\"><from><xdr:col>9</xdr:col><xdr:colOff>209550</xdr:colOff><xdr:row>5</xdr:row><xdr:rowOff>0</xdr:rowOff></from><to><xdr:col>9</xdr:col><xdr:colOff>1714500</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>28575</xdr:rowOff></to></anchor></controlPr></control></mc:Choice></mc:AlternateContent></controls></mc:Choice></mc:AlternateContent></worksheet>", "s2head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" mc:Ignorable=\"x14ac\" xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\"><sheetPr><pageSetUpPr fitToPage=\"1\"/></sheetPr><dimension ref=\"A1:XFC20\"/><sheetViews><sheetView showGridLines=\"0\" tabSelected=\"1\" zoomScale=\"80\" zoomScaleNormal=\"80\" zoomScalePageLayoutView=\"90\" workbookViewId=\"0\"><pane xSplit=\"5\" ySplit=\"4\" topLeftCell=\"F5\" activePane=\"bottomRight\" state=\"frozen\"/><selection pane=\"topRight\" activeCell=\"F1\" sqref=\"F1\"/><selection pane=\"bottomLeft\" activeCell=\"A96\" sqref=\"A96\"/><selection pane=\"bottomRight\" sqref=\"A1:V1\"/></sheetView></sheetViews><sheetFormatPr defaultColWidth=\"9.140625\" defaultRowHeight=\"15.75\"/><cols><col min=\"1\" max=\"1\" width=\"6.140625\" style=\"60\" customWidth=\"1\"/><col min=\"2\" max=\"2\" width=\"28.7109375\" style=\"61\" customWidth=\"1\"/><col min=\"3\" max=\"3\" width=\"26.140625\" style=\"62\" customWidth=\"1\"/><col min=\"4\" max=\"4\" width=\"7\" style=\"63\" customWidth=\"1\"/><col min=\"5\" max=\"5\" width=\"10.5703125\" style=\"61\" customWidth=\"1\"/><col min=\"6\" max=\"21\" width=\"5.7109375\" style=\"64\" customWidth=\"1\"/><col min=\"22\" max=\"22\" width=\"11.42578125\" style=\"65\" customWidth=\"1\"/><col min=\"23\" max=\"16384\" width=\"9.140625\" style=\"60\"/></cols><sheetData><row r=\"1\" spans=\"1:22 16373:16383\" ht=\"18.75\" customHeight=\"1\"><c r=\"A1\" s=\"120\" t=\"s\"><v>27</v></c><c r=\"B1\" s=\"120\"/><c r=\"C1\" s=\"120\"/><c r=\"D1\" s=\"120\"/><c r=\"E1\" s=\"120\"/><c r=\"F1\" s=\"120\"/><c r=\"G1\" s=\"120\"/><c r=\"H1\" s=\"120\"/><c r=\"I1\" s=\"120\"/><c r=\"J1\" s=\"120\"/><c r=\"K1\" s=\"120\"/><c r=\"L1\" s=\"120\"/><c r=\"M1\" s=\"120\"/><c r=\"N1\" s=\"120\"/><c r=\"O1\" s=\"120\"/><c r=\"P1\" s=\"120\"/><c r=\"Q1\" s=\"120\"/><c r=\"R1\" s=\"120\"/><c r=\"S1\" s=\"120\"/><c r=\"T1\" s=\"120\"/><c r=\"U1\" s=\"120\"/><c r=\"V1\" s=\"120\"/></row><row r=\"2\" spans=\"1:22 16373:16383\" s=\"70\" customFormat=\"1\" ht=\"36.75\" customHeight=\"1\"><c r=\"A2\" s=\"66\" t=\"s\"><v>341</v></c><c r=\"B2\" s=\"67\" t=\"s\"><v>325</v></c><c r=\"C2\" s=\"67\" t=\"s\"><v>326</v></c><c r=\"D2\" s=\"67\" t=\"s\"><v>28</v></c><c r=\"E2\" s=\"67\" t=\"s\"><v>327</v></c><c r=\"F2\" s=\"68\" t=\"s\"><v>342</v></c><c r=\"G2\" s=\"68\" t=\"s\"><v>29</v></c><c r=\"H2\" s=\"68\" t=\"s\"><v>30</v></c><c r=\"I2\" s=\"68\" t=\"s\"><v>31</v></c><c r=\"J2\" s=\"68\" t=\"s\"><v>343</v></c><c r=\"K2\" s=\"68\" t=\"s\"><v>32</v></c><c r=\"L2\" s=\"68\" t=\"s\"><v>328</v></c><c r=\"M2\" s=\"68\" t=\"s\"><v>329</v></c><c r=\"N2\" s=\"68\" t=\"s\"><v>330</v></c><c r=\"O2\" s=\"68\" t=\"s\"><v>331</v></c><c r=\"P2\" s=\"68\" t=\"s\"><v>332</v></c><c r=\"Q2\" s=\"68\" t=\"s\"><v>333</v></c><c r=\"R2\" s=\"68\" t=\"s\"><v>334</v></c><c r=\"S2\" s=\"68\" t=\"s\"><v>335</v></c><c r=\"T2\" s=\"68\" t=\"s\"><v>33</v></c><c r=\"U2\" s=\"107\" t=\"s\"><v>17</v></c><c r=\"V2\" s=\"69\" t=\"s\"><v>18</v></c></row><row r=\"3\" spans=\"1:22 16373:16383\" ht=\"18.75\" customHeight=\"1\"><c r=\"A3\" s=\"71\"/><c r=\"B3\" s=\"72\"/><c r=\"C3\" s=\"73\"/><c r=\"D3\" s=\"72\"/><c r=\"E3\" s=\"72\" t=\"s\"><v>34</v></c><c r=\"F3\" s=\"74\"/><c r=\"G3\" s=\"74\"/><c r=\"H3\" s=\"74\"/><c r=\"I3\" s=\"74\"/><c r=\"J3\" s=\"74\"/><c r=\"K3\" s=\"75\"/><c r=\"L3\" s=\"74\"/><c r=\"M3\" s=\"74\"/><c r=\"N3\" s=\"74\"/><c r=\"O3\" s=\"74\"/><c r=\"P3\" s=\"74\"/><c r=\"Q3\" s=\"74\"/><c r=\"R3\" s=\"74\"/><c r=\"S3\" s=\"74\"/><c r=\"T3\" s=\"74\"/><c r=\"U3\" s=\"74\"/><c r=\"V3\" s=\"76\"><f>SUBTOTAL(9,F3:U3)</f><v>0</v></c></row><row r=\"4\" spans=\"1:22 16373:16383\" s=\"78\" customFormat=\"1\" ht=\"18.75\" customHeight=\"1\"><c r=\"A4\" s=\"79\"><f>SUBTOTAL(3,A5:A5)</f><v>1</v></c><c r=\"B4\" s=\"80\"/><c r=\"C4\" s=\"80\"/><c r=\"D4\" s=\"80\"/><c r=\"E4\" s=\"80\"/><c r=\"F4\" s=\"81\"/><c r=\"G4\" s=\"81\"/><c r=\"H4\" s=\"81\"/><c r=\"I4\" s=\"81\"/><c r=\"J4\" s=\"81\"/><c r=\"K4\" s=\"81\"/><c r=\"L4\" s=\"81\"/><c r=\"M4\" s=\"81\"/><c r=\"N4\" s=\"81\"/><c r=\"O4\" s=\"81\"/><c r=\"P4\" s=\"81\"/><c r=\"Q4\" s=\"81\"/><c r=\"R4\" s=\"81\"/><c r=\"S4\" s=\"81\"/><c r=\"T4\" s=\"81\"/><c r=\"U4\" s=\"81\"/><c r=\"V4\" s=\"82\"><f>SUBTOTAL(9,F4:U4)</f><v>0</v></c></row>", "s2post": "<conditionalFormatting sqref=\"A4\"><cfRule type=\"cellIs\" dxfId=\"7\" priority=\"19\" operator=\"equal\"><formula>0</formula></cfRule><cfRule type=\"cellIs\" dxfId=\"6\" priority=\"20\" operator=\"equal\"><formula>0</formula></cfRule></conditionalFormatting><printOptions horizontalCentered=\"1\"/><pageMargins left=\"0\" right=\"0\" top=\"0\" bottom=\"0\" header=\"0.511811023622047\" footer=\"0.511811023622047\"/><pageSetup paperSize=\"9\" scale=\"79\" fitToHeight=\"0\" orientation=\"landscape\" horizontalDpi=\"300\" verticalDpi=\"300\"/></worksheet>", "styles": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" mc:Ignorable=\"x14ac x16r2\" xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\" xmlns:x16r2=\"http://schemas.microsoft.com/office/spreadsheetml/2015/02/main\"><numFmts count=\"2\"><numFmt numFmtId=\"164\" formatCode=\"_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \\-??_);_(@_)\"/><numFmt numFmtId=\"165\" formatCode=\"_(* #,##0_);_(* \\(#,##0\\);_(* \\-??_);_(@_)\"/></numFmts><fonts count=\"47\"><font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><charset val=\"134\"/></font><font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><scheme val=\"minor\"/></font><font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"10\"/><name val=\"Arial\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"129\"/></font><font><sz val=\"12\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"12\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"12\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"23\"/><color rgb=\"FF0070C0\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"23\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"23\"/><color rgb=\"FF0070C0\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"23\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"14\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"14\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"14\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"17\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"17\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"17\"/><color rgb=\"FF0070C0\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"17\"/><color rgb=\"FFFF0000\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><u/><sz val=\"17\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"17\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"17\"/><color rgb=\"FFFF0000\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"14\"/><color rgb=\"FFFF0000\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><u/><sz val=\"14\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"16\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"16\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"16\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"16\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"16\"/><color rgb=\"FFFF0000\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><i/><u/><sz val=\"16\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><i/><u/><sz val=\"12\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><i/><u/><sz val=\"18\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"18\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"18\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"12\"/><color rgb=\"FF000000\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"9\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"8\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"9\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"10\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"10\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"8\"/><color theme=\"0\" tint=\"-0.499984740745262\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"9\"/><color theme=\"0\" tint=\"-0.499984740745262\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"11\"/><color theme=\"0\" tint=\"-0.499984740745262\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><b/><sz val=\"8\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><charset val=\"1\"/></font><font><sz val=\"8\"/><color rgb=\"FF000000\"/><name val=\"Tahoma\"/><family val=\"2\"/></font><font><sz val=\"14\"/><name val=\"Calibri\"/><family val=\"2\"/></font></fonts><fills count=\"13\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"3\" tint=\"0.59987182226020086\"/><bgColor rgb=\"FF9999FF\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"0\"/><bgColor rgb=\"FFFFFFCC\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"4\" tint=\"0.79989013336588644\"/><bgColor rgb=\"FFD9D9D9\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"5\" tint=\"0.79989013336588644\"/><bgColor rgb=\"FFD9D9D9\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"5\" tint=\"0.59987182226020086\"/><bgColor rgb=\"FFD9D9D9\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor rgb=\"FFFFFF00\"/><bgColor rgb=\"FFFFFF00\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"6\" tint=\"0.59987182226020086\"/><bgColor rgb=\"FFD9D9D9\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"3\" tint=\"0.59999389629810485\"/><bgColor rgb=\"FFD9D9D9\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"6\" tint=\"0.59999389629810485\"/><bgColor indexed=\"64\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"6\" tint=\"0.59999389629810485\"/><bgColor rgb=\"FFFFFF00\"/></patternFill></fill><fill><patternFill patternType=\"solid\"><fgColor theme=\"0\" tint=\"-0.14996795556505021\"/><bgColor indexed=\"64\"/></patternFill></fill></fills><borders count=\"9\"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top style=\"medium\"><color auto=\"1\"/></top><bottom/><diagonal/></border><border><left/><right/><top/><bottom style=\"thin\"><color auto=\"1\"/></bottom><diagonal/></border><border><left/><right/><top style=\"thin\"><color auto=\"1\"/></top><bottom style=\"thin\"><color auto=\"1\"/></bottom><diagonal/></border><border><left style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></left><right style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></right><top style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></top><bottom style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></bottom><diagonal/></border><border><left style=\"thin\"><color auto=\"1\"/></left><right style=\"thin\"><color auto=\"1\"/></right><top style=\"thin\"><color auto=\"1\"/></top><bottom style=\"thin\"><color auto=\"1\"/></bottom><diagonal/></border><border><left style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></left><right/><top style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></top><bottom style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></bottom><diagonal/></border><border><left/><right/><top style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></top><bottom style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></bottom><diagonal/></border><border><left/><right style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></right><top style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></top><bottom style=\"thin\"><color theme=\"0\" tint=\"-0.499984740745262\"/></bottom><diagonal/></border></borders><cellStyleXfs count=\"12\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"164\" fontId=\"2\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"164\" fontId=\"2\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"164\" fontId=\"3\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"164\" fontId=\"2\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"164\" fontId=\"2\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"0\" fontId=\"3\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"0\" fontId=\"4\" fillId=\"0\" borderId=\"0\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\"/><xf numFmtId=\"0\" fontId=\"1\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs><cellXfs count=\"125\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"6\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"6\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"7\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"9\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"11\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"8\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"9\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"13\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"13\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"14\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"14\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"15\" fillId=\"0\" borderId=\"2\" xfId=\"0\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"16\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"15\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\"/></xf><xf numFmtId=\"14\" fontId=\"18\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"14\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"15\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"19\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"20\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"19\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"21\" fillId=\"0\" borderId=\"2\" xfId=\"0\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"22\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"23\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"23\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"12\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"24\" fillId=\"2\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"25\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"26\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/><xf numFmtId=\"165\" fontId=\"24\" fillId=\"0\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"26\" fillId=\"0\" borderId=\"4\" xfId=\"5\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\" shrinkToFit=\"1\"/></xf><xf numFmtId=\"165\" fontId=\"26\" fillId=\"0\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"3\" fontId=\"26\" fillId=\"0\" borderId=\"4\" xfId=\"0\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"24\" fillId=\"0\" borderId=\"4\" xfId=\"0\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"37\" fontId=\"26\" fillId=\"0\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"165\" fontId=\"26\" fillId=\"3\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"26\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"37\" fontId=\"27\" fillId=\"2\" borderId=\"4\" xfId=\"6\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"3\" fontId=\"25\" fillId=\"4\" borderId=\"4\" xfId=\"6\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"37\" fontId=\"28\" fillId=\"5\" borderId=\"4\" xfId=\"6\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"29\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"25\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"38\" fontId=\"25\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyNumberFormat=\"1\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"25\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"30\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"7\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"7\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"38\" fontId=\"7\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyNumberFormat=\"1\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"31\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"32\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"33\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"33\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"32\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"34\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"7\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"7\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"164\" fontId=\"7\" fillId=\"0\" borderId=\"0\" xfId=\"1\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"7\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"10\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" xfId=\"10\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"35\" fillId=\"0\" borderId=\"0\" xfId=\"10\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" xfId=\"10\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"36\" fillId=\"0\" borderId=\"0\" xfId=\"10\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"37\" fillId=\"0\" borderId=\"0\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"38\" fillId=\"0\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"39\" fillId=\"0\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"37\" fillId=\"6\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"165\" fontId=\"37\" fillId=\"6\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"10\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"40\" fillId=\"0\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"35\" fillId=\"0\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"41\" fillId=\"0\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"41\" fillId=\"0\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"165\" fontId=\"42\" fillId=\"0\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"10\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"43\" fillId=\"8\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"8\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"3\" fontId=\"2\" fillId=\"8\" borderId=\"4\" xfId=\"10\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"39\" fillId=\"8\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"2\" fillId=\"0\" borderId=\"4\" xfId=\"5\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\" shrinkToFit=\"1\"/></xf><xf numFmtId=\"165\" fontId=\"2\" fillId=\"0\" borderId=\"4\" xfId=\"5\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"39\" fillId=\"7\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"44\" fillId=\"0\" borderId=\"0\" xfId=\"10\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"5\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"5\" fillId=\"0\" borderId=\"5\" xfId=\"5\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"5\" fillId=\"0\" borderId=\"5\" xfId=\"5\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"5\" fillId=\"0\" borderId=\"5\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"5\" fillId=\"0\" borderId=\"5\" xfId=\"5\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"5\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"5\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"2\" fillId=\"0\" borderId=\"5\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"5\" fillId=\"0\" borderId=\"5\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"7\" fillId=\"0\" borderId=\"5\" xfId=\"5\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"165\" fontId=\"7\" fillId=\"0\" borderId=\"5\" xfId=\"5\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"165\" fontId=\"7\" fillId=\"0\" borderId=\"5\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"39\" fillId=\"9\" borderId=\"5\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"39\" fillId=\"9\" borderId=\"5\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"10\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"165\" fontId=\"39\" fillId=\"11\" borderId=\"4\" xfId=\"1\" applyNumberFormat=\"1\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"37\" fillId=\"6\" borderId=\"4\" xfId=\"10\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"5\" xfId=\"0\" applyBorder=\"1\"/><xf numFmtId=\"38\" fontId=\"25\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyNumberFormat=\"1\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"32\" fillId=\"0\" borderId=\"0\" xfId=\"6\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"27\" fillId=\"2\" borderId=\"4\" xfId=\"6\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"27\" fillId=\"4\" borderId=\"4\" xfId=\"6\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"27\" fillId=\"5\" borderId=\"4\" xfId=\"6\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf><xf numFmtId=\"0\" fontId=\"8\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"10\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"46\" fillId=\"12\" borderId=\"1\" xfId=\"11\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"46\" fillId=\"12\" borderId=\"0\" xfId=\"11\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"17\" fillId=\"0\" borderId=\"2\" xfId=\"0\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"17\" fillId=\"0\" borderId=\"3\" xfId=\"0\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"left\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"24\" fillId=\"3\" borderId=\"0\" xfId=\"10\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"10\" borderId=\"6\" xfId=\"10\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"10\" borderId=\"7\" xfId=\"10\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"2\" fillId=\"10\" borderId=\"8\" xfId=\"10\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"center\" vertical=\"center\"/></xf><xf numFmtId=\"0\" fontId=\"21\" fillId=\"0\" borderId=\"2\" xfId=\"0\" applyFont=\"1\" applyBorder=\"1\" applyAlignment=\"1\"><alignment horizontal=\"right\" vertical=\"center\"/></xf></cellXfs><cellStyles count=\"12\"><cellStyle name=\"Comma\" xfId=\"1\" builtinId=\"3\"/><cellStyle name=\"Comma 2\" xfId=\"2\"/><cellStyle name=\"Comma 2 2\" xfId=\"3\"/><cellStyle name=\"Comma 3\" xfId=\"4\"/><cellStyle name=\"Comma 4\" xfId=\"5\"/><cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/><cellStyle name=\"Normal 2\" xfId=\"6\"/><cellStyle name=\"Normal 3\" xfId=\"7\"/><cellStyle name=\"Normal 4\" xfId=\"8\"/><cellStyle name=\"Normal 5\" xfId=\"9\"/><cellStyle name=\"Normal 6\" xfId=\"10\"/><cellStyle name=\"Normal 7\" xfId=\"11\"/></cellStyles><dxfs count=\"8\"><dxf><font><color rgb=\"FF9C0006\"/></font><fill><patternFill><bgColor rgb=\"FFFFC7CE\"/></patternFill></fill></dxf><dxf><font><color rgb=\"FF9C0006\"/></font><fill><patternFill><bgColor rgb=\"FFFFC7CE\"/></patternFill></fill></dxf><dxf><font><color rgb=\"FF9C0006\"/></font><fill><patternFill><bgColor rgb=\"FFFFC7CE\"/></patternFill></fill></dxf><dxf><font><color rgb=\"FF9C0006\"/></font><fill><patternFill><bgColor rgb=\"FFFFC7CE\"/></patternFill></fill></dxf><dxf><font><color rgb=\"FF9C0006\"/></font><fill><patternFill><bgColor rgb=\"FFFFC7CE\"/></patternFill></fill></dxf><dxf><font><color rgb=\"FF9C0006\"/></font><fill><patternFill><bgColor rgb=\"FFFFC7CE\"/></patternFill></fill></dxf><dxf><font><color rgb=\"FFFFFFFF\"/></font><fill><patternFill><bgColor rgb=\"FF000000\"/></patternFill></fill></dxf><dxf><fill><patternFill><bgColor theme=\"6\" tint=\"0.59987182226020086\"/></patternFill></fill></dxf></dxfs><tableStyles count=\"0\" defaultTableStyle=\"TableStyleMedium2\" defaultPivotStyle=\"PivotStyleLight16\"/><colors><indexedColors><rgbColor rgb=\"FF000000\"/><rgbColor rgb=\"FFFFFFFF\"/><rgbColor rgb=\"FFFF0000\"/><rgbColor rgb=\"FF00FF00\"/><rgbColor rgb=\"FF0000FF\"/><rgbColor rgb=\"FFFFFF00\"/><rgbColor rgb=\"FFFF00FF\"/><rgbColor rgb=\"FF00FFFF\"/><rgbColor rgb=\"FF800000\"/><rgbColor rgb=\"FF008000\"/><rgbColor rgb=\"FF000080\"/><rgbColor rgb=\"FF808000\"/><rgbColor rgb=\"FF800080\"/><rgbColor rgb=\"FF008080\"/><rgbColor rgb=\"FFE6B9B8\"/><rgbColor rgb=\"FF808080\"/><rgbColor rgb=\"FF9999FF\"/><rgbColor rgb=\"FF993366\"/><rgbColor rgb=\"FFFFFFCC\"/><rgbColor rgb=\"FFDCE6F2\"/><rgbColor rgb=\"FF660066\"/><rgbColor rgb=\"FFFF8080\"/><rgbColor rgb=\"FF0070C0\"/><rgbColor rgb=\"FFD9D9D9\"/><rgbColor rgb=\"FF000080\"/><rgbColor rgb=\"FFFF00FF\"/><rgbColor rgb=\"FFFFFF00\"/><rgbColor rgb=\"FF00FFFF\"/><rgbColor rgb=\"FF800080\"/><rgbColor rgb=\"FF800000\"/><rgbColor rgb=\"FF008080\"/><rgbColor rgb=\"FF0000FF\"/><rgbColor rgb=\"FF00CCFF\"/><rgbColor rgb=\"FFCCFFFF\"/><rgbColor rgb=\"FFD7E4BD\"/><rgbColor rgb=\"FFFFFF99\"/><rgbColor rgb=\"FF8EB4E3\"/><rgbColor rgb=\"FFFF99CC\"/><rgbColor rgb=\"FFCC99FF\"/><rgbColor rgb=\"FFF2DCDB\"/><rgbColor rgb=\"FF3366FF\"/><rgbColor rgb=\"FF33CCCC\"/><rgbColor rgb=\"FFA9D08E\"/><rgbColor rgb=\"FFFFCC00\"/><rgbColor rgb=\"FFFF9900\"/><rgbColor rgb=\"FFFF6600\"/><rgbColor rgb=\"FF666699\"/><rgbColor rgb=\"FFA6A6A6\"/><rgbColor rgb=\"FF003366\"/><rgbColor rgb=\"FF339966\"/><rgbColor rgb=\"FF003300\"/><rgbColor rgb=\"FF333300\"/><rgbColor rgb=\"FF993300\"/><rgbColor rgb=\"FF993366\"/><rgbColor rgb=\"FF333399\"/><rgbColor rgb=\"FF333333\"/><rgbColor rgb=\"00003366\"/><rgbColor rgb=\"00339966\"/><rgbColor rgb=\"00003300\"/><rgbColor rgb=\"00333300\"/><rgbColor rgb=\"00993300\"/><rgbColor rgb=\"00993366\"/><rgbColor rgb=\"00333399\"/><rgbColor rgb=\"00333333\"/></indexedColors></colors><extLst><ext uri=\"{EB79DEF2-80B8-43e5-95BD-54CBDDF9020C}\" xmlns:x14=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\"><x14:slicerStyles defaultSlicerStyle=\"SlicerStyleLight1\"/></ext><ext uri=\"{9260A510-F301-46a8-8635-F512D64BE5F5}\" xmlns:x15=\"http://schemas.microsoft.com/office/spreadsheetml/2010/11/main\"><x15:timelineStyles defaultTimelineStyle=\"TimeSlicerStyleLight1\"/></ext></extLst></styleSheet>", "shared": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"621\" uniqueCount=\"346\"><si><t>PURCHASE REQUEST</t></si><si><t xml:space=\"preserve\"> PHIẾU ĐỀ NGHỊ MUA HÀNG</t></si><si><t>Full name: Nguyễn Hồng Thắm</t></si><si><t>For: QA Team</t></si><si><t>ID code: USV005566</t></si><si><t>In:</t></si><si><t>Position: QA Coordinator</t></si><si><t xml:space=\"preserve\">Date: </t></si><si><t>Department: QA</t></si><si><t>No.\nSố</t></si><si><t>Unit\nĐơn vị</t></si><si><t>Price\nĐơn giá</t></si><si><t>Quantity\nSố lượng</t></si><si><t>Amount\nThành tiền</t></si><si><t>Purpose\nMục đích sử dụng</t></si><si><t>Group\nNhóm</t></si><si><t>Picture\nHình ảnh</t></si><si><t>Office</t></si><si><t>Total</t></si><si><t>VAT 8%</t></si><si><t>Grand total</t></si><si><t>Requested by</t></si><si><t>Dept. Manager</t></si><si><t>Senior Director\nProduction Management</t></si><si><t>Nguyễn Hồng Thắm</t></si><si><t>Kim Joo Shik</t></si><si><t>Chun Yong Soo</t></si><si><t>QA STATIONERY ORDER LIST - 2026</t></si><si><t>Unit</t></si><si><t>AEO</t></si><si><t>Pink</t></si><si><t>CostCo</t></si><si><t>Target</t></si><si><t>F7 Colorist</t></si><si><t>Manpower</t></si><si><t>Bấm lỗ 837</t></si><si><t>Two-hole punch 837</t></si><si><t>pcs</t></si><si><t>Băng keo 2 mặt 2.4cm (12 cuộn)</t></si><si><t>Tape 2-sided 2.4cm (12 rolls)</t></si><si><t>set</t></si><si><t>Băng keo giấy 2.4cm (12 cuộn)</t></si><si><t>Paper Tape 2.4cm (12 rolls)</t></si><si><t>Băng keo giấy 4.8cm (6 cuộn)</t></si><si><t>Paper Tape 4.8cm (6 rolls)</t></si><si><t>Băng keo văn phòng (10 cuộn)</t></si><si><t>Clear Tape for office (10 rolls)</t></si><si><t>Bìa acco giấy  - xanh dương</t></si><si><t>Paper flat file</t></si><si><t>Bìa Acco nhựa - xanh dương</t></si><si><t>Plastic flat file</t></si><si><t>Bìa cây trong gáy Q310B</t></si><si><t>Rail folder</t></si><si><t>Plus binder 10cm</t></si><si><t>Bìa còng Plus 7 cm</t></si><si><t>Plus binder 7cm</t></si><si><t>Bìa lỗ nilon TL -100 cái/ xấp</t></si><si><t>Clear protector sheets nylon</t></si><si><t>bag</t></si><si><t>Bìa lỗ Plus dày</t></si><si><t>Clear protector sheets Plus</t></si><si><t>O-Ring binder</t></si><si><t>Bìa trình ký đôi simili A4</t></si><si><t>Double sided clipboard</t></si><si><t>Bìa trình ký đơn simili A4</t></si><si><t>Clipboard</t></si><si><t>Bút bi TL 027 đen</t></si><si><t>Ball pen TL 027 black</t></si><si><t>Bút bi TL 027 xanh</t></si><si><t>Ball pen TL 027 blue</t></si><si><t>Bút bi TL 027 đỏ</t></si><si><t>Ball pen TL 027 red</t></si><si><t>Wood Pencil GP 2B</t></si><si><t>Bút dạ quang HL 03 hồng</t></si><si><t>Highlighter HL 03 pink</t></si><si><t>Bút dạ quang HL 03 vàng</t></si><si><t>Highlighter HL 03 yellow</t></si><si><t>Bút dạ quang HL 03 xanh dương</t></si><si><t>Highlighter HL 03 blue</t></si><si><t>Whiteboard marker WB-03 black</t></si><si><t>Whiteboard marker WB-03 red</t></si><si><t>Whiteboard marker WB-03 blue</t></si><si><t>Bút lông dầu PM 04 đen</t></si><si><t>Permanent marker PM 04 black</t></si><si><t>Bút lông dầu PM 04 đỏ</t></si><si><t>Permanent marker PM 04 red</t></si><si><t>Bút lông dầu PM 04 xanh</t></si><si><t>Permanent marker PM 04 blue</t></si><si><t>Bút lông dầu PM 09 đen</t></si><si><t>Permanent marker PM 09 black</t></si><si><t>Bút lông dầu PM 09 xanh</t></si><si><t>Permanent marker PM 09 blue</t></si><si><t>Bút xóa kéo lớn Plus WH-105T</t></si><si><t>Bút xóa CP02</t></si><si><t>Correction fluid pen</t></si><si><t>Cắt keo văn phòng 2001</t></si><si><t>Tape dispenser 2001</t></si><si><t>Chổi nilon loại thường</t></si><si><t>Nylon duster</t></si><si><t>Pencil Sharpener TL S01</t></si><si><t xml:space=\"preserve\">Đồ lau bảng </t></si><si><t xml:space=\"preserve\">Board cleaner     </t></si><si><t>Đồng hồ độ ẩm HTC-1</t></si><si><t>Humidity clock HTC-1</t></si><si><t>Giấy A4 IK(70)/Paper A4 70 IK</t></si><si><t>IK A4 paper</t></si><si><t>raem</t></si><si><t>Sticker Tommy No. 100</t></si><si><t>Giấy decal đế xanh-100 tờ/ xấp</t></si><si><t xml:space=\"preserve\">Paper decal blue </t></si><si><t>Giấy note mũi tên 5 màu dạ quang</t></si><si><t>Sticky note arrow - 5 color</t></si><si><t>Charming toilet paper</t></si><si><t>roll</t></si><si><t>Cục gôm Thiên Long E06</t></si><si><t>Eraser</t></si><si><t>bottle</t></si><si><t>Hóa đơn bán lẻ</t></si><si><t xml:space=\"preserve\">Bill </t></si><si><t>Kệ 3 tầng ráp mica 190-3</t></si><si><t>Kệ rổ 3 ngăn</t></si><si><t>Magazine file-3 case</t></si><si><t>Kệ rổ 1 ngăn</t></si><si><t>Magazine file-1 case</t></si><si><t>Kéo K19</t></si><si><t>Scissor K19</t></si><si><t>Binder clip 15mm</t></si><si><t>box</t></si><si><t>Kẹp bướm 25mm</t></si><si><t>Binder clip 25mm</t></si><si><t>Box</t></si><si><t xml:space=\"preserve\">Kẹp bướm 51mm </t></si><si><t>Binder clip 51mm</t></si><si><t>Kẹp giấy C62A</t></si><si><t>Paper clip C62A</t></si><si><t>Khung hình màu đen khổ A4 40x60 cm</t></si><si><t>Staples No.10 Plus</t></si><si><t>Staples No.3 Viet Duc</t></si><si><t>Stapler No3</t></si><si><t>Máy kim bấm No.3 Eagle 206A</t></si><si><t xml:space=\"preserve\">Máy tính Casio JS-120L      </t></si><si><t xml:space=\"preserve\">Calculator Casio JS-120L  </t></si><si><t>Miếng lót chuột 20*25cm</t></si><si><t>Mouse pad</t></si><si><t>Mực in Shiny đỏ-28ml</t></si><si><t>Mực in Shiny xanh-28ml</t></si><si><t>Refill ink for whiteboard marker blue</t></si><si><t>Mực cho mộc \"S\"</t></si><si><t>Ink for \"S\" Stamp</t></si><si><t>Nẹp Acco nhựa UNI (50 set/ hộp)</t></si><si><t>Fastener clip</t></si><si><t>A4 laminating film</t></si><si><t>Pin AAA Maxcell (3a)</t></si><si><t>Pin AAAA Maxcell (4a)</t></si><si><t>Pin con ó đại</t></si><si><t>Con Ó battery</t></si><si><t>Pin máy tính</t></si><si><t xml:space=\"preserve\"> Calculater battery</t></si><si><t>Sticker Dán Lỗi cho QA</t></si><si><t>QA Error Blue Sticker</t></si><si><t>Sheet</t></si><si><t>Sticker Dán Lỗi cho QA AEO</t></si><si><t>QA AEO Red Defect Sticker</t></si><si><t>Tập 96 trang big in</t></si><si><t>Notebook 96 pages Big In</t></si><si><t>Thước dây Đức loại tốt</t></si><si><t>Germany measure tape</t></si><si><t>Thước kẻ dày Queen 30cm</t></si><si><t xml:space=\"preserve\">Straight ruler 30cm </t></si><si><t>Thước kẻ dẻo WinQ 30cm</t></si><si><t>Plastic Ruler 30cm</t></si><si><t>Tờ A4 1 mặt</t></si><si><t>Form Realtime (A4 - 1 sided)  (QAD-0009)</t></si><si><t>Form Final (A4 - 1 sided) (QAD-0006)</t></si><si><t>Form Pre-Final (A4 - 1 sided) (QAD-0007)</t></si><si><t>Form Packing Audit (A4 - 1 sided)  (QAD-0008)</t></si><si><t>Mộc FQA màu XANH 4.5cm*1.5cm</t></si><si><t>FQA Inspection Stamp BLUE</t></si><si><t>Mộc FQA màu XANH 5cm*2.5cm</t></si><si><t>FQA Approved Stamp BLUE</t></si><si><t>Mộc Tên màu XANH 1.5cm*1.0cm</t></si><si><t>Name Stamp BLUE</t></si><si><t>Mộc Colorist màu XANH 3.7cm*1.3cm</t></si><si><t>Approved by QA + Date Stamp</t></si><si><t>Mộc Colorist màu ĐỎ 3.7cm*1.3cm</t></si><si><t>Rejected by QA + Date Stamp</t></si><si><t>Hộp nhựa 9cm x 6cm</t></si><si><t>Needle changed box 9cm x 6cm</t></si><si><t>Nam châm tròn đ.kính 1.5cm</t></si><si><t>Magnetic Bar for Needle Box 1.5cm</t></si><si><t>Sticky note 3*4</t></si><si><t>Phiếu xuất kho</t></si><si><t>Delivery Note (TRM-0002)</t></si><si><t>Hộp đựng bút No. 168</t></si><si><t>Desk Organiz No.168</t></si><si><t>Tập 200 trang Làng Hương 52gsm - Kẻ thường</t></si><si><t>Notebook 200 pages Lang Huong</t></si><si><t>Cuốn</t></si><si><t>Bấm giấy không kim Plus</t></si><si><t>Free staple stapler Plus</t></si><si><t>Stapler No. 10</t></si><si><t>Bấm lỗ KW-Trio 9670</t></si><si><t>Heavy duty punch 2-hole</t></si><si><t>Bao nhựa trắng 30*40</t></si><si><t>Clear plastic bag 30*40</t></si><si><t>kg</t></si><si><t>Bao nhựa trắng 40*50</t></si><si><t>Clear plastic bag 40*50</t></si><si><t>Bao thư trắng 12 x 22 cm</t></si><si><t>White envelopes 12 x 22 cm</t></si><si><t>Bao thư trắng 13 x 18 cm</t></si><si><t>White envelopes 13 x 18 cm</t></si><si><t>Pcs</t></si><si><t>Bìa còng TL F4 5cm</t></si><si><t>TL binder 5cm</t></si><si><t>Bìa nhựa 20 lá TL</t></si><si><t>Plastic cover A4 - 20 leaf</t></si><si><t>Bìa phân trang nhựa 12 số</t></si><si><t>Plastic divider 12 sheets</t></si><si><t>Bút chì ngòi bấm AX125</t></si><si><t>Mechanical Pencil</t></si><si><t>Bút dạ quang lớn TOYO SP28-hồng</t></si><si><t>Highlighter Toyo pink</t></si><si><t>Bút dạ quang lớn TOYO SP28-vàng</t></si><si><t>Highlighter Toyo yellow</t></si><si><t>Bút dạ quang lớn TOYO SP28-xanh</t></si><si><t>Highlighter Toyo green</t></si><si><t xml:space=\"preserve\">Bút lông dầu PM 09 đỏ </t></si><si><t>Permanent marker PM 09 red</t></si><si><t>Big corection tape</t></si><si><t>Café G7 ko đường</t></si><si><t>Nonsugar coffee G7</t></si><si><t>Chuốt chì có tay quay SDI</t></si><si><t>Pencil Sharpener</t></si><si><t>Giấy A4 cứng trắng</t></si><si><t>A4 hard paper white</t></si><si><t>Gỡ ghim Eagle 1029</t></si><si><t>Eagle Staples remover 1029</t></si><si><t>Hộp đựng bút No. 3006</t></si><si><t>Desk Organiz No.3006</t></si><si><t>Stackable Desk Tray-3 levels</t></si><si><t>Kẹp bướm 19mm</t></si><si><t>Binder clip 19mm</t></si><si><t>Binder clip 32mm</t></si><si><t>Binder clip 41mm</t></si><si><t>Kẹp nhựa giấy</t></si><si><t>Plastis clip</t></si><si><t>ink Stamp Shiny red</t></si><si><t>ink Stamp Shiny blue</t></si><si><t>Mực lông bảng màu xanh-25ml</t></si><si><t>Mực lông dầu màu đen-25ml</t></si><si><t>Refill ink for permanent marker black</t></si><si><t>Nhựa ép A4 100 pieces</t></si><si><t>Pin AA Maxcell (2a)</t></si><si><t>Pin Maxcell đại</t></si><si><t>Maxcell battery</t></si><si><t>Pin Panasonic vuông 9V</t></si><si><t>Panasonic battery 9V</t></si><si><t>Thước kẻ cứng 50 cm</t></si><si><t>Straight ruler 50cm</t></si><si><t>Cái</t></si><si><t>Nhựa ép A3 100 pieces</t></si><si><t>A3 laminating film</t></si><si><t>Bút đế cắm Thiên Long PH-02</t></si><si><t>Thien Long Pen PH-02</t></si><si><t>Băng keo 2 mặt 1.5 cm (20 cuộn)</t></si><si><t>Tape 2-sided 1.5cm (20 rolls)</t></si><si><t>Băng keo 2 mặt 1cm (30 cuộn)</t></si><si><t>Tape 2-sided 1cm (30 rolls)</t></si><si><t>Băng keo 2 mặt 4.8cm (6 cuộn)</t></si><si><t>Tape 2-sided 4.8cm (6 rolls)</t></si><si><t>Băng keo giấy 1cm (30 cuộn)</t></si><si><t>Paper Tape 1cm (30 rolls)</t></si><si><t>Băng keo simili 2cm (15 cuộn)</t></si><si><t>Simili Tape 2cm (15 rolls)</t></si><si><t>Băng keo simili 4.8cm (6 cuộn)</t></si><si><t>Simili Tape 4.8cm (6 rolls)</t></si><si><t>Băng keo trong 1 cm (30 cuộn)</t></si><si><t>Clear tape 1cm (30 rolls)</t></si><si><t>Băng keo trong 1.8 cm (16 cuộn)</t></si><si><t>Clear tape 1.8cm (16 rolls)</t></si><si><t>Băng keo trong 2.4cm (12 cuộn)</t></si><si><t>Clear tape 2.4cm (12 rolls)</t></si><si><t>Băng keo trong 4.8cm (6 cuộn)</t></si><si><t>Clear tape 4.8cm (6 rolls)</t></si><si><t>Băng keo trong 7cm (4 cuộn)</t></si><si><t>Clear tape 7cm (4 rolls)</t></si><si><t>A4 - 1 sided</t></si><si><t>Tờ A4 2 mặt</t></si><si><t>Cuốn A5 có liên</t></si><si><t>A5 roll with carbon paper</t></si><si><t>Roll</t></si><si><t>Cuốn A4 có liên</t></si><si><t>A4 roll with carbon paper</t></si><si><t>Cuốn A4 không liên</t></si><si><t>A4 roll</t></si><si><t>Tờ A4 1 mặt (Form 1st cho QA)</t></si><si><t>Form 1st Production(A4 - 1 sided) (QAD-0002)</t></si><si><t>Black photo frame A4 40x60 cm</t></si><si><t>Mộc FQC màu xanh 4cm*2 cm</t></si><si><t>FQC Inspection Stamp</t></si><si><t>Bấm kim No.10 Plus</t></si><si><t>Bút lông bảng đen WB-03</t></si><si><t>Bút lông bảng đỏ WB-03</t></si><si><t>Bút lông bảng xanh WB-03</t></si><si><t>Bìa còng Plus 10 cm</t></si><si><t>Bìa còng nhẫn nhựa Thiên Long A4 3.5cm</t></si><si><t>Giấy dán nhãn Tommy No.100</t></si><si><t>Kẹp bướm 15mm</t></si><si><t>Kẹp bướm 32mm</t></si><si><t>Kẹp bướm 41mm</t></si><si><t>Kim bấm No.10 Plus</t></si><si><t>Kim bấm No.3 Việt Đức</t></si><si><t>Giấy Note vàng 3*4</t></si><si><t>Bút chì GP 2B</t></si><si><t>Chuốt chì Thiên Long S-01</t></si><si><t>Tờ A4 1 mặt (Form Inline cho QA)</t></si><si><t>Tờ A4 1 mặt (Form Realtime cho QA)</t></si><si><t>Tờ A4 1 mặt (Form Final cho QA)</t></si><si><t>Tờ A4 1 mặt (Form Prefinal cho QA)</t></si><si><t>Tờ A4 1 mặt (Form Packing audit cho QA)</t></si><si><t>Băng keo OPP màu đỏ 4.8cm (6 cuộn)</t></si><si><t>Red OPP 4.8cm (6 rolls)</t></si><si><t>Kéo văn phòng S180</t></si><si><t>S180 scissors</t></si><si><t>Stationery(VN)</t></si><si><t>Stationery(EN)</t></si><si><t>Quotation</t></si><si><t>F6 Uniqlo</t></si><si><t>F7 Uniqlo</t></si><si><t>F1/F2 WM</t></si><si><t>F3 WM</t></si><si><t>F4 WM</t></si><si><t>F1/F2 PSC</t></si><si><t>F3/F4 PSC</t></si><si><t>F6/F7 PSC</t></si><si><t>Photo</t></si><si><t>Giấy vệ sinh Charming</t></si><si><t>AA Maxell Battery (2a)</t></si><si><t>AAA Maxell Battery (3a)</t></si><si><t>AAAA Maxell Battery (4a)</t></si><si><t>No.</t></si><si><t>A&amp;F</t></si><si><t>Cotton On</t></si><si><t>Stationery(VN)\nTiếng Việt</t></si><si><t>Stationery(EN)\nTiếng anh</t></si></sst>", "theme": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<a:theme xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" name=\"Office Theme\"><a:themeElements><a:clrScheme name=\"Office\"><a:dk1><a:srgbClr val=\"000000\"/></a:dk1><a:lt1><a:srgbClr val=\"FFFFFF\"/></a:lt1><a:dk2><a:srgbClr val=\"1F497D\"/></a:dk2><a:lt2><a:srgbClr val=\"EEECE1\"/></a:lt2><a:accent1><a:srgbClr val=\"4F81BD\"/></a:accent1><a:accent2><a:srgbClr val=\"C0504D\"/></a:accent2><a:accent3><a:srgbClr val=\"9BBB59\"/></a:accent3><a:accent4><a:srgbClr val=\"8064A2\"/></a:accent4><a:accent5><a:srgbClr val=\"4BACC6\"/></a:accent5><a:accent6><a:srgbClr val=\"F79646\"/></a:accent6><a:hlink><a:srgbClr val=\"0000FF\"/></a:hlink><a:folHlink><a:srgbClr val=\"800080\"/></a:folHlink></a:clrScheme><a:fontScheme name=\"Office\"><a:majorFont><a:latin typeface=\"Cambria\" panose=\"020F0302020204030204\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:majorFont><a:minorFont><a:latin typeface=\"Calibri\" panose=\"020F0502020204030204\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:minorFont></a:fontScheme><a:fmtScheme><a:fillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:tint val=\"50000\"/></a:schemeClr></a:gs><a:gs pos=\"35000\"><a:schemeClr val=\"phClr\"><a:tint val=\"37000\"/></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:tint val=\"15000\"/></a:schemeClr></a:gs></a:gsLst><a:lin ang=\"16200000\" scaled=\"1\"/><a:tileRect/></a:gradFill><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:shade val=\"51000\"/></a:schemeClr></a:gs><a:gs pos=\"80000\"><a:schemeClr val=\"phClr\"><a:shade val=\"93000\"/></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:shade val=\"94000\"/></a:schemeClr></a:gs></a:gsLst><a:lin ang=\"16200000\" scaled=\"0\"/><a:tileRect/></a:gradFill></a:fillStyleLst><a:lnStyleLst><a:ln w=\"9525\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"><a:prstDash val=\"solid\"/></a:ln><a:ln w=\"25400\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"><a:prstDash val=\"solid\"/></a:ln><a:ln w=\"38100\" cap=\"flat\" cmpd=\"sng\" algn=\"ctr\"><a:prstDash val=\"solid\"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:tint val=\"40000\"/></a:schemeClr></a:gs><a:gs pos=\"40000\"><a:schemeClr val=\"phClr\"><a:tint val=\"45000\"/><a:shade val=\"99000\"/></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:shade val=\"20000\"/></a:schemeClr></a:gs></a:gsLst><a:path path=\"circle\"><a:fillToRect l=\"50000\" t=\"-80000\" r=\"50000\" b=\"180000\"/></a:path><a:tileRect/></a:gradFill><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:schemeClr val=\"phClr\"><a:tint val=\"80000\"/></a:schemeClr></a:gs><a:gs pos=\"100000\"><a:schemeClr val=\"phClr\"><a:shade val=\"30000\"/></a:schemeClr></a:gs></a:gsLst><a:path path=\"circle\"><a:fillToRect l=\"50000\" t=\"50000\" r=\"50000\" b=\"50000\"/></a:path><a:tileRect/></a:gradFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements><a:objectDefaults/><a:extraClrSchemeLst/></a:theme>", "drawing1": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<xdr:wsDr xmlns:xdr=\"http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><xdr:twoCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>38880</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>21240</xdr:rowOff></xdr:from><xdr:to><xdr:col>1</xdr:col><xdr:colOff>788760</xdr:colOff><xdr:row>2</xdr:row><xdr:rowOff>122040</xdr:rowOff></xdr:to><xdr:pic><xdr:nvPicPr><xdr:cNvPr id=\"2\" name=\"Picture 2\" descr=\"D:\\UNISOLL\\Unisollvina_Logo_20150102.png\"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" r:embed=\"rId1\"/><a:stretch/></xdr:blipFill><xdr:spPr><a:xfrm><a:off x=\"38880\" y=\"21240\"/><a:ext cx=\"1162800\" cy=\"577080\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:ln w=\"9525\"><a:noFill/></a:ln></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor><xdr:twoCellAnchor><xdr:from><xdr:col>8</xdr:col><xdr:colOff>1197429</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>122464</xdr:rowOff></xdr:from><xdr:to><xdr:col>10</xdr:col><xdr:colOff>30390</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>233466</xdr:rowOff></xdr:to><xdr:sp macro=\"\" textlink=\"\"><xdr:nvSpPr><xdr:cNvPr id=\"3\" name=\"Rectangle 2\"/><xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr><a:xfrm><a:off x=\"14532429\" y=\"122464\"/><a:ext cx=\"2316390\" cy=\"355931\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:ln><a:noFill/></a:ln></xdr:spPr><xdr:style><a:lnRef idx=\"2\"><a:schemeClr val=\"dk1\"/></a:lnRef><a:fillRef idx=\"1\"><a:schemeClr val=\"lt1\"/></a:fillRef><a:effectRef idx=\"0\"><a:schemeClr val=\"dk1\"/></a:effectRef><a:fontRef idx=\"minor\"><a:schemeClr val=\"dk1\"/></a:fontRef></xdr:style><xdr:txBody><a:bodyPr rtlCol=\"0\" anchor=\"ctr\"/><a:lstStyle/><a:p><a:pPr marL=\"0\" marR=\"0\" indent=\"0\" algn=\"l\" defTabSz=\"914400\" eaLnBrk=\"1\" fontAlgn=\"auto\" latinLnBrk=\"0\" hangingPunct=\"1\"><a:lnSpc><a:spcPct val=\"100000\"/></a:lnSpc><a:spcBef><a:spcPts val=\"0\"/></a:spcBef><a:spcAft><a:spcPts val=\"0\"/></a:spcAft><a:buClrTx/><a:buSzTx/><a:buFontTx/><a:buNone/><a:defRPr/></a:pPr><a:r><a:rPr lang=\"en-US\" sz=\"1100\"><a:solidFill><a:schemeClr val=\"dk1\"/></a:solidFill><a:latin typeface=\"+mn-lt\"/><a:ea typeface=\"+mn-ea\"/><a:cs typeface=\"+mn-cs\"/></a:rPr><a:t>No.:  GAD-0001 </a:t></a:r><a:endParaRPr lang=\"en-US\" sz=\"1100\"><a:latin typeface=\"+mn-lt\"/></a:endParaRPr></a:p><a:p><a:pPr algn=\"l\"/><a:r><a:rPr lang=\"en-US\" sz=\"1100\"><a:latin typeface=\"+mn-lt\"/><a:cs typeface=\"Times New Roman\" panose=\"02020603050405020304\" pitchFamily=\"18\" charset=\"0\"/></a:rPr><a:t>Issued date: May 17,</a:t></a:r><a:r><a:rPr lang=\"en-US\" sz=\"1100\" baseline=\"0\"><a:latin typeface=\"+mn-lt\"/><a:cs typeface=\"Times New Roman\" panose=\"02020603050405020304\" pitchFamily=\"18\" charset=\"0\"/></a:rPr><a:t> 2019</a:t></a:r><a:endParaRPr lang=\"en-US\" sz=\"1100\"><a:latin typeface=\"+mn-lt\"/><a:cs typeface=\"Times New Roman\" panose=\"02020603050405020304\" pitchFamily=\"18\" charset=\"0\"/></a:endParaRPr></a:p><a:p><a:pPr algn=\"l\"/><a:r><a:rPr lang=\"en-US\" sz=\"1100\"><a:latin typeface=\"+mn-lt\"/><a:cs typeface=\"Times New Roman\" panose=\"02020603050405020304\" pitchFamily=\"18\" charset=\"0\"/></a:rPr><a:t>Revised date: </a:t></a:r></a:p></xdr:txBody></xdr:sp><xdr:clientData/></xdr:twoCellAnchor><mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><mc:Choice xmlns:a14=\"http://schemas.microsoft.com/office/drawing/2010/main\" Requires=\"a14\"><xdr:twoCellAnchor editAs=\"oneCell\"><xdr:from><xdr:col>9</xdr:col><xdr:colOff>200025</xdr:colOff><xdr:row>3</xdr:row><xdr:rowOff>57150</xdr:rowOff></xdr:from><xdr:to><xdr:col>9</xdr:col><xdr:colOff>1714500</xdr:colOff><xdr:row>4</xdr:row><xdr:rowOff>95250</xdr:rowOff></xdr:to><xdr:sp macro=\"\" textlink=\"\"><xdr:nvSpPr><xdr:cNvPr id=\"1025\" name=\"Check Box 1\" hidden=\"1\"><a:extLst><a:ext uri=\"{63B3BB69-23CF-44E3-9099-C40C66FF867C}\"><a14:compatExt spid=\"_x0000_s1025\"/></a:ext></a:extLst></xdr:cNvPr><xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr bwMode=\"auto\"><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln><a:extLst><a:ext uri=\"{909E8E84-426E-40DD-AFC4-6F175D3DCCD1}\"><a14:hiddenFill><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill></a14:hiddenFill></a:ext><a:ext uri=\"{91240B29-F687-4F45-9708-019B960494DF}\"><a14:hiddenLine w=\"9525\"><a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill><a:miter lim=\"800000\"/><a:headEnd/><a:tailEnd/></a14:hiddenLine></a:ext></a:extLst></xdr:spPr><xdr:txBody><a:bodyPr vertOverflow=\"clip\" wrap=\"square\" lIns=\"27432\" tIns=\"18288\" rIns=\"0\" bIns=\"18288\" anchor=\"ctr\" upright=\"1\"/><a:lstStyle/><a:p><a:pPr algn=\"l\" rtl=\"0\"><a:defRPr sz=\"1000\"/></a:pPr><a:r><a:rPr lang=\"en-US\" sz=\"800\" b=\"0\" i=\"0\" u=\"none\" strike=\"noStrike\" baseline=\"0\"><a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill><a:latin typeface=\"Tahoma\"/><a:ea typeface=\"Tahoma\"/><a:cs typeface=\"Tahoma\"/></a:rPr><a:t>        Office Supplies</a:t></a:r></a:p></xdr:txBody></xdr:sp><xdr:clientData/></xdr:twoCellAnchor></mc:Choice><mc:Fallback/></mc:AlternateContent><mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><mc:Choice xmlns:a14=\"http://schemas.microsoft.com/office/drawing/2010/main\" Requires=\"a14\"><xdr:twoCellAnchor editAs=\"oneCell\"><xdr:from><xdr:col>9</xdr:col><xdr:colOff>209550</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>57150</xdr:rowOff></xdr:from><xdr:to><xdr:col>9</xdr:col><xdr:colOff>1714500</xdr:colOff><xdr:row>7</xdr:row><xdr:rowOff>38100</xdr:rowOff></xdr:to><xdr:sp macro=\"\" textlink=\"\"><xdr:nvSpPr><xdr:cNvPr id=\"1026\" name=\"Check Box 2\" hidden=\"1\"><a:extLst><a:ext uri=\"{63B3BB69-23CF-44E3-9099-C40C66FF867C}\"><a14:compatExt spid=\"_x0000_s1026\"/></a:ext></a:extLst></xdr:cNvPr><xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr bwMode=\"auto\"><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln><a:extLst><a:ext uri=\"{909E8E84-426E-40DD-AFC4-6F175D3DCCD1}\"><a14:hiddenFill><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill></a14:hiddenFill></a:ext><a:ext uri=\"{91240B29-F687-4F45-9708-019B960494DF}\"><a14:hiddenLine w=\"9525\"><a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill><a:miter lim=\"800000\"/><a:headEnd/><a:tailEnd/></a14:hiddenLine></a:ext></a:extLst></xdr:spPr><xdr:txBody><a:bodyPr vertOverflow=\"clip\" wrap=\"square\" lIns=\"27432\" tIns=\"18288\" rIns=\"0\" bIns=\"18288\" anchor=\"ctr\" upright=\"1\"/><a:lstStyle/><a:p><a:pPr algn=\"l\" rtl=\"0\"><a:defRPr sz=\"1000\"/></a:pPr><a:r><a:rPr lang=\"en-US\" sz=\"800\" b=\"0\" i=\"0\" u=\"none\" strike=\"noStrike\" baseline=\"0\"><a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill><a:latin typeface=\"Tahoma\"/><a:ea typeface=\"Tahoma\"/><a:cs typeface=\"Tahoma\"/></a:rPr><a:t>        Others</a:t></a:r></a:p></xdr:txBody></xdr:sp><xdr:clientData/></xdr:twoCellAnchor></mc:Choice><mc:Fallback/></mc:AlternateContent><mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\"><mc:Choice xmlns:a14=\"http://schemas.microsoft.com/office/drawing/2010/main\" Requires=\"a14\"><xdr:twoCellAnchor editAs=\"oneCell\"><xdr:from><xdr:col>9</xdr:col><xdr:colOff>209550</xdr:colOff><xdr:row>5</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>9</xdr:col><xdr:colOff>1714500</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>28575</xdr:rowOff></xdr:to><xdr:sp macro=\"\" textlink=\"\"><xdr:nvSpPr><xdr:cNvPr id=\"1027\" name=\"Check Box 3\" hidden=\"1\"><a:extLst><a:ext uri=\"{63B3BB69-23CF-44E3-9099-C40C66FF867C}\"><a14:compatExt spid=\"_x0000_s1027\"/></a:ext></a:extLst></xdr:cNvPr><xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr bwMode=\"auto\"><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln><a:extLst><a:ext uri=\"{909E8E84-426E-40DD-AFC4-6F175D3DCCD1}\"><a14:hiddenFill><a:solidFill><a:srgbClr val=\"FFFFFF\"/></a:solidFill></a14:hiddenFill></a:ext><a:ext uri=\"{91240B29-F687-4F45-9708-019B960494DF}\"><a14:hiddenLine w=\"9525\"><a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill><a:miter lim=\"800000\"/><a:headEnd/><a:tailEnd/></a14:hiddenLine></a:ext></a:extLst></xdr:spPr><xdr:txBody><a:bodyPr vertOverflow=\"clip\" wrap=\"square\" lIns=\"27432\" tIns=\"18288\" rIns=\"0\" bIns=\"18288\" anchor=\"ctr\" upright=\"1\"/><a:lstStyle/><a:p><a:pPr algn=\"l\" rtl=\"0\"><a:defRPr sz=\"1000\"/></a:pPr><a:r><a:rPr lang=\"en-US\" sz=\"800\" b=\"0\" i=\"0\" u=\"none\" strike=\"noStrike\" baseline=\"0\"><a:solidFill><a:srgbClr val=\"000000\"/></a:solidFill><a:latin typeface=\"Tahoma\"/><a:ea typeface=\"Tahoma\"/><a:cs typeface=\"Tahoma\"/></a:rPr><a:t>        Cleaning Supplies</a:t></a:r></a:p></xdr:txBody></xdr:sp><xdr:clientData/></xdr:twoCellAnchor></mc:Choice><mc:Fallback/></mc:AlternateContent></xdr:wsDr>", "vml": "<xml xmlns:v=\"urn:schemas-microsoft-com:vml\"\n xmlns:o=\"urn:schemas-microsoft-com:office:office\"\n xmlns:x=\"urn:schemas-microsoft-com:office:excel\">\n <o:shapelayout v:ext=\"edit\">\n  <o:idmap v:ext=\"edit\" data=\"1\"/>\n </o:shapelayout><v:shapetype id=\"_x0000_t201\" coordsize=\"21600,21600\" o:spt=\"201\"\n  path=\"m,l,21600r21600,l21600,xe\">\n  <v:stroke joinstyle=\"miter\"/>\n  <v:path shadowok=\"f\" o:extrusionok=\"f\" strokeok=\"f\" fillok=\"f\" o:connecttype=\"rect\"/>\n  <o:lock v:ext=\"edit\" shapetype=\"t\"/>\n </v:shapetype><v:shape id=\"_x0000_s1025\" type=\"#_x0000_t201\" style='position:absolute;\n  margin-left:1167pt;margin-top:60.75pt;width:119.25pt;height:17.25pt;\n  z-index:1;mso-wrap-style:tight' filled=\"f\" stroked=\"f\" o:insetmode=\"auto\">\n  <v:path shadowok=\"t\" strokeok=\"t\" fillok=\"t\"/>\n  <o:lock v:ext=\"edit\" rotation=\"t\"/>\n  <v:textbox o:singleclick=\"f\">\n   <div style='text-align:left'><font face=\"Tahoma\" size=\"160\" color=\"#000000\"><span\n   style='mso-spacerun:yes'>        </span>Office Supplies</font></div>\n  </v:textbox>\n  <x:ClientData ObjectType=\"Checkbox\">\n   <x:SizeWithCells/>\n   <x:Anchor>\n    9, 21, 3, 6, 9, 180, 4, 10</x:Anchor>\n   <x:TextVAlign>Center</x:TextVAlign>\n   <x:LockText>False</x:LockText>\n   <x:Checked>1</x:Checked>\n   <x:NoThreeD/>\n  </x:ClientData>\n </v:shape><v:shape id=\"_x0000_s1026\" type=\"#_x0000_t201\" style='position:absolute;\n  margin-left:1167.75pt;margin-top:103.5pt;width:118.5pt;height:17.25pt;\n  z-index:2;mso-wrap-style:tight' filled=\"f\" stroked=\"f\" o:insetmode=\"auto\">\n  <v:path shadowok=\"t\" strokeok=\"t\" fillok=\"t\"/>\n  <o:lock v:ext=\"edit\" rotation=\"t\"/>\n  <v:textbox o:singleclick=\"f\">\n   <div style='text-align:left'><font face=\"Tahoma\" size=\"160\" color=\"#000000\"><span\n   style='mso-spacerun:yes'>        </span>Others</font></div>\n  </v:textbox>\n  <x:ClientData ObjectType=\"Checkbox\">\n   <x:SizeWithCells/>\n   <x:Anchor>\n    9, 22, 6, 6, 9, 180, 7, 4</x:Anchor>\n   <x:TextVAlign>Center</x:TextVAlign>\n   <x:LockText>False</x:LockText>\n   <x:NoThreeD/>\n  </x:ClientData>\n </v:shape><v:shape id=\"_x0000_s1027\" type=\"#_x0000_t201\" style='position:absolute;\n  margin-left:1167.75pt;margin-top:84.75pt;width:118.5pt;height:16.5pt;\n  z-index:3;mso-wrap-style:tight' filled=\"f\" stroked=\"f\" o:insetmode=\"auto\">\n  <v:path shadowok=\"t\" strokeok=\"t\" fillok=\"t\"/>\n  <o:lock v:ext=\"edit\" rotation=\"t\"/>\n  <v:textbox o:singleclick=\"f\">\n   <div style='text-align:left'><font face=\"Tahoma\" size=\"160\" color=\"#000000\"><span\n   style='mso-spacerun:yes'>        </span>Cleaning Supplies</font></div>\n  </v:textbox>\n  <x:ClientData ObjectType=\"Checkbox\">\n   <x:SizeWithCells/>\n   <x:Anchor>\n    9, 22, 5, 0, 9, 180, 6, 3</x:Anchor>\n   <x:TextVAlign>Center</x:TextVAlign>\n   <x:LockText>False</x:LockText>\n   <x:NoThreeD/>\n  </x:ClientData>\n </v:shape></xml>", "ctrl1": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<formControlPr xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" objectType=\"CheckBox\" checked=\"Checked\" noThreeD=\"1\"/>", "ctrl2": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<formControlPr xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" objectType=\"CheckBox\" noThreeD=\"1\"/>", "ctrl3": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<formControlPr xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" objectType=\"CheckBox\" noThreeD=\"1\"/>", "sheet1rels": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/ctrlProp\" Target=\"../ctrlProps/ctrlProp1.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing\" Target=\"../drawings/vmlDrawing1.vml\"/><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing\" Target=\"../drawings/drawing1.xml\"/><Relationship Id=\"rId5\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/ctrlProp\" Target=\"../ctrlProps/ctrlProp3.xml\"/><Relationship Id=\"rId4\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/ctrlProp\" Target=\"../ctrlProps/ctrlProp2.xml\"/></Relationships>", "logo": "iVBORw0KGgoAAAANSUhEUgAAAHoAAAA+CAYAAAGTlz8IAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAABKQSURBVGhD7VsLlCZFdf6XKGgIBk1iQlR8IcgawLgmQcAz4THM7N9V9S/KahJPnig5YMhbEqO4Ho+PbACfuLszf1f1zKxBWU18IGo8HgX1kMQYk5xoQBCIEAnPIKAISyK536263dXV/T9259/dWZjvnPvXrWf/t291PW7d6iwfx1/2xE6veCTEOsz37AeZ14sv47AN0/PP9vWkAZB2d3d08YmygSy/mcMUUp4b2BVMLz21VnnsBox7uFFR2YXBDWj3f40KMWn7uZJnTG16XGf2PU/ykQFQ+Us6s/1jQ6zTWTf3+MARjL23Y4rLie4IKb7RYdBuOnCTAF6S4PiLnxg4eoq9hcNS1oBaXCISQlYgTQfAx/GxIJV2qTIKqqKpygaUfVOjkLZLlP4Adel3lmmxdjrrtx3T6W19Voh1Oqf3n8Lhxh0/wmEMNfeT9LsmROxVnkmwdtOBHZMfFWLQ739yWGoDXxuAvyKo8faHIfRfYFoujgva0mp4ZI0vE3/qgHZ/waEAn75yn2w8PH5AzANpXKDzezhPqCG5EUlDHA8H8HC8a0kHykYChI/TVX5RGU9p4tiweHTrg4S0vb3kdxvanlVrFGSK13Go8s0+Ho2Lpvh+xL+Bw5UBDI0c0vAIKPcNDlPohbcGroKybwtcHcZWgx2AT2z0cLrpgMDsOqYvPNgzoQ2df4jDlQVR+tSmJ3DYc+dyCEieorkR4I4SPsPZ+adzXIXyu9J5uKxUKB9Mcd2/q+Kpd8YPzuxzSr4tHAWU47LCxA/mjIiXBxt7JtFfMq/tORxieASkzjBIe1xWKgx6cBwCwmv7vyH8Dw7jMil0/g7Oj6msgAdjvI4heXEovHLfZT4eeuNyAklPaY9BFztbHyg0cbQ9BGTcg7X4RICOhsaUq6TU+Q9KPiWsd3YbprihtdGu69XiM9sOK3njbvMhTRojodyLiP6hrDyKTHGdD6nTIdTFhVUeLY84jfYdKw8vy58ZOEz4P8GhrAzX7jiQw9PmfpzDGjb6Mm15WNn4lWSEXv+XOdR5tR5TfT9F9ooHORSo/OU0rB5Lr+5qXm2m6PaPDpzHmdE+ANB2W+AGQOd+ro4fjBELD/b8V4l/C/WBj3NcoPq/GziP9MHKXRS4RyNkt9QGPX982V/2FjTGkDbbgExWAvks03Sk+bp+dsQMKvuCDn0EyNMLfmCLgTgWpSZ/DX3Wfr6RGRZIywNtaeNCzf0o1xcqhc5ywwS+TbhuWMLHQNwUV5bpNaEJSNf2oRDzwJShEjuJ7p9Yazt9DtCWNgrKvpvrpVQJTYsqEPhYaMS1Wyz5bOEXmQc4Dzu/4uXMp0ID2t3CeQLf3tYQ88Bwl5ZJ0ZbWCuph0jMH0cjujbhxf8ck5h4BeNlxlqagILRyr6S0B5hHuupr5vEpcJvFRo6dkB/i23G/yXEA8akvPI5J0JZWYQ3VH776iclbGNynQmV0v0911p3tzVDg4zkEQJqae37JG7eJeaCHvb77sxCj/GKB33pGi84Umbuc84y9JqRU8O16EqRpWX9dq0Dj0H6DbvEzrdaq3aEVijXUSy6nz+PO1j89kvJrSl4+p5j2OTJb0Cj7UOOPpRQPTlgRYbor4+4jJW/sp+kTqOwymJdLnlZVCPcoYK42Ft/1/5QPHpcwtxrnNQ3AOFnm0VSEsUTiOpwngGBWxUvhdHs2lfOmOTFEMj8u9NIRNCC9ihq6mBq6dL+mVQBi4xbwoQnN0YLZuanKyGYVh4J0OxQDWyLZpZh8sw8pTaAXmlOXLu7n0OQ7OFQLN3Fo7NpyHxcj3tWIUV+sjroYYhCECTSL5ubSFBqWkyp/I4dAvKAA2oQ29vpON2xQRWjAuDtKobX15rcYYnYbhF7x/cBVGCY0YOx/BY5g3Bw9eMnzwe47veWpHPqp4xZaH89yHOkQNrO/0Zm1P8Vpuv97tAJ7NQsNPgUMlUAsNCBHLYKurXoUgFUWjh+Nu97H7R92sqXjyv+q7Tc72V8/mXkAQuP5mNNjoU3xKxT+I8eNu5HDVUwSPfeMzlRxaIjVcVr+szTVvCDE9g5wDsMnvTyfhYfrhRdwPAWXcfUtIoD02F4T1zX5yRwHrXfHhFQPfI+S1xw4N3J6DGP/rZG2q9Dur7iNXRJ6ULpYu4G4DOcVN9O3fh9/ewLj8pB3RWdDWDigjGBPCG3s17k+aCyhlfvjskKKND3le4sXhFgFpMcGMgyGcb1JC50a3EuhlX0tW00Qpo1jzavc5zl9KozCAmmozdXAuKLRFjAo7eRL/LQ2SaHbjAml0CnFQJyPFouHSZDbQqoH8uLe0Va3LS0F0rr2V5mfhNCYVlG+jUqhs/kZby5yMxyvELwFCKmFBZA4t2Hf3MiHywvS4rkxLQMgTeWnMr9coWNnnjYa+U3DlhVXiPMAiWvrR8Y0H9D2FbV0z1eWTwBp4hO0HKHHMRmNFBo8VkNiI+Oy7pSQWwkNgI/jMPHOvucgprQcXK8EWILW6gWh2RYW1tciNKdFpmJBVlzA+ePQWELHUPntNNh5Yx8Q5+PlpHWFVF7VAeI8UHfbySGnEhqk7a0+LQgNMvZNnAb4sWZ8gyCIhYahTc0dzo2oxcM5Loh5AGvoYfm1OO3E8Idg504xs/0wmhF2ssaV+7WQ6qHsSdwOSNsPcJou3h+l+QFPF19sFWoUsdD7G7R7a6sw49J+JbQOs8NyacULjRF9l7txtCDxnqN1B9cVK3S29Wk073vL5TikimureE3oASuylQIcJcExQf7cqfNH1v6stnVDf2zmrdm28++VPHzGynTE7c59L3S29XmkjW/X/pjQKZf+dMlj1jj2woOZhwefKl5L3f6KMl/bL5S8yV9c8nJOBsK0nG35ub0vNFy74Stl7GDHG6GMhBNeuatqXVVOOYXi77Zrf6nkVb6h4u0HqXc8vOeFxoG8cv9UPnhXKD6ZAImzWM+9kzQLnw+/F8fSMz5MUO7+ktf5t0oelPW/MRmhYZjDsaxx24m8t9IkCIYH4bP8Y1W6eIzHA1ZR+YYp97Uq3V1W8fYjHI4tNI5YunMn0Ft9PTUK4dpPDvYHarOXr+JRi1Pf513iTg2ucYL4okTmnsehIHaTSuvFwGcRAyssTCPjAlPV+sUjQyx4TSy+OMSaEFe9yj1vDYez25MLQdrewyEme0Aq+gHA26xho1Z9vz1UxXc4xIUADmm0HATZhsotpPU0h2JZKZBBRdk/4jCGcr9Qfn89O8+hKvy2Mr4WFAPztcDYL3OIdqaKJ5CivsVxRiq0cVdyGAttCu9VnfokHnHeQUOFzuxxHPZC2yI0XEwBERp7cTV3EvOCXrIlVXnl2zIIg4QGZoLNgJEKDWgrlggvdLblyZ3euw5lI0OMDYsnDRUagGAquKKXQnPXq4SGt2ls+wYymili9NydgRuMYULXIMehmOQF2fxLa0ID2PTDR6uGR+DKNFxo+JEJ4u6NRQSEztxLael4VM0/DYABIkYvOvwr72UkGCY0nl1CUdc19M1m9uyQ4uFXRF5oXcx6oQnQyBnbDyt7BoSWk0qEcHmIYZw/6gXavulepOF10cCH22h6/iwqfzy16a0lWHh4J7+/5zj8krG8FGBBI/9FhIZbty7Op7yPcrxEOso2Ub8tM7r8ngMMjatYxVBk+UZvXscspIvPMJ0WjKKCk/NnlnniOTkImN6lbOqV0QYpa4q3h5Q62PDJ+X8eUurgbUAwrhj7IB/FjQIcFLDvqLmkFTfTsNINJdqBsVb+7zCoYstY5fYGVO6vP4J4kpQTKhY6nr4JYvoHpR7gKUzxz2VZ0CjEZVW/bT0WdtOJIzVgbGUQigmTYCs2HUAdp34xqY26xQtDhTri44dhiI8k9gXYjBr5TgpNTNGn9CtjlpDqvyvktqNR3k6FHI9BisbOoawTVh1m8yHUg5u+IR6VxRAuE5j0U+gimGSIDA11KVa6orGgia2kKU1M0dr6e2UYErFZEX4YpN14GMUfFgz/oqs6ZwRft0HQ7lYuh/aGIevfVLaZXlteqYqGt6Y8bxg1FD2MBil6OvI41vP+2FoUATfuQSjrFJ/g5bLEBcMUfQSOu/N4nr0u5DQh/0WF7fggxBblbl6dGgMrS9FraNS5ptbZR9FEFG3cvZyPG+QCU1zKafgzgyDtyj0fsWhjgeXjgxUtUPaTZTt4lhi9Ykh+uu9rIHJ/h0d7jJWgaJWfO9Y6o42WPXRnC0+r6hZ3k6DfLknScY+hDVU9r2j0VLlcgflmHEUDGO5VLqvvH9L/rF/YkhMAY4e7/cKgz88jSv2t95WiZ+3a2rvcXVq2os2Qm+8x8YMSSF6laMJGfxm1Ri2KXt8/kTrCn4aYh5Q3Rf1rhG+55Cn73pBaB0zMZf3EMRDYm4pmr+hw4WZStCxFzxTPKvOyhXUhNUa02s2b1ybKvFjRBDa4hjymRNHGfrSqSy8Ertu6uKFMEwNrDGXfV+bjqzf2byjt90mpm2mxFq24cZkhWYgBsaJxEVhI518NJTxiRcfljPuDUKId3fkXUltfKetOmpalaBla5ZyjDdr+SVk/NdZKeqpoAFfXJL/ti9bOVfmBoMDM/U4o0cRpi4fXlJrWVZErXopY0TGJS58gVnRMsZufAE6jJv/v1vKTprYRdb8C7M+zC88lrukkOgwQHPUwTO4t4G4WX2WgTtWmjD1J+72iVzL4xCV/HdH4PnB7ilYVPTFgb0uLKLeVKOwWVhCtKno3wb4M7pX0td7T+mInTVjQnbF0XCNd09YLGLW/XlX0mICvR+bu40UbXpwq3k0LtDsbL3S5pFvODIYRDndwyN+WF9OqoiNg96Ht+Z2suJ5e4GD7gPdoOIC+aH8LsZbn7qDV+6f57kstnTvIobSFuo7juPcd5/u0z3XU9hfR0P+vtXRjP0udbKb1q9ULr+j03I2NdFgrtbuELwAh/phTNL4Ybc+hl3AlhbcHBdRf0igy7t+JNjfS/Z7+AnY01m6xngc3HJq74Seo7E303Ka1q+t6FDZHCVgLoai2/4obWWmaIrnYJQjhwus57VGl6I07DuTzZHib6fwzpIwbSeDJL4xm859nxWX5A7X0M+mlD/Nkh4Na151AZb7Tms8GphZl6uJikueK2iEOyBQ7SPkL1BHqow+Uj1EnTlvxiuaLmfNPpz1o1lH9N5DyLqMX9TVa4X5vt77GSRAud2r34cbzS7s/fc1pnrK/TQrxV3vZo6df/+JxDQGmWlO8rZYOgncx3/dw9XtVuKboLW/1qwrd/tHcKbT7Wx5FkLZXFI0jRRwB4g9oN0099Cz6028h4ZYo/BL3cGUf2meKeyzQY26OXsUqVrGKRxHkvoYgvrdh7I7AVcC478NDaQHhPfTXbzuG4nAYuI9WpK/hNAHuamBzr+w3fei2hByPtqsPvaJ+QSXFFO6ORLcBBOVNA1rcyFUFf+mmfvBh3NWNuQttpufZg2Ds2/k8Hts0nIphxR0fcaJtY2+j/Lt4HaJpHaKK54fc0cAqPr6GAej8XtYNtlx4j1OX/Jhf99gHfHqxs2MWvtzqO8AYpmi49pjihhDzaFM0rk9gaZ8CZ7zxFQzG2Y+vKXd3FA3AtfV094wQQ53fov+7nvlY0f72086a90mbojW9PKyA286kY0CxkCGFsv42FZ6j7N3Mx8js+fTc4WfTgjZFA7J9EkDRKrl4lGFnYteGWIThX/S9bNs1/R+ElHZF4+Vk+V0kzJk+ToBLziC3X12c15nd6v/M7ioaiN18Tf+OwDUVDcCpbna7f2aqaPxvODHA8UHbq0NqEzPbcB+pPiKlUO7awDUBq9s4WI6icZvN2K+HWIRRimaQItGTp5cObld0ALZRUgd7YFiJ2mDcRXziAyxH0bhyr4sTae94Xe2OUpuiAbgT9dyr64qmLxDbO7gGg7BnPb1/hM9LMHveQdTGx0OsHab4SuCakKllFJajaMgDe0MDxtZvoirnb7wCpaIDxIsCKBXNneADnAZgXyxQ9vNEfjgVGFiX8n8JseUpGsAN3dStZ5CiAdxHgjFBFJ3lNzeGccy/g4CXqJemQ8yDRz0no9ca4vH/6+sC5a7qzC4cG2IVMNemWI6idf+GdqcKCIm7Tpm9j0O5mgwYd2ngKmT5OziEe5Bxb2R+w/yRxN9GD/1uZyY/itMEMBvCRoz2lb22k/WT+6L5h6jDfIxJOowuPlymxVcm29DqJ5a/JHifoHM273fxXXeS84TNh9Az65d0Ab30bFrYVNNQCnQidHoskJS9lZ736yGnAq4a4X0oez+VXeKDEwHu1vJ9NXsOv58UrJMgP6j7/qPLdO38+wdg9i3LwZ/OndvZGOlPu+ZaYRX7AiMWfhNBp/P/016iZ0pXJVMAAAAASUVORK5CYII="};
+</script>
+<script>
+  // ---- Config ----
+  // Web app URL of the Apps Script deployment (Deploy > Manage deployments > Web app URL, ends with /exec)
+  const API_URL = 'PASTE_WEB_APP_URL_HERE';
+  let PHOTO_IMGS = {}, PHOTO_OF = {};          // photos for the Excel export (loaded from the sheet on first export)
+
+  // ---- Tabs ----
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabPanels = {
+    purchase: document.getElementById('tab-purchase'),
+    summary: document.getElementById('tab-summary')
+  };
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Object.values(tabPanels).forEach(p => p.classList.remove('active'));
+      tabPanels[btn.dataset.tab].classList.add('active');
+    });
+  });
+
+  // ---- Master data ----
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const TEAMS = ['A&F','AEO','Pink','CostCo','Cotton On','Target','F6 Uniqlo','F7 Uniqlo','F1/F2 WM','F3 WM','F4 WM','F1/F2 PSC','F3/F4 PSC','F6/F7 PSC','F7 Colorist','Office'];
+  // Items = tab "list" of the Google Sheet (loaded at start; last copy is kept in this browser)
+  let ITEMS = [];
+  const ITEM_MAP = {};
+  const ITEM_BY_KEY = {};
+  const itemKey = s => norm(s).replace(/\s+/g, ' ').trim();
+  function canonVN(name){ return ITEM_BY_KEY[itemKey(name)] || name; }
+  function setCatalog(list){
+    ITEMS = (list || []).map(i => ({ vn: i.vn, en: i.en || '', unit: i.unit || '', price: Number(i.price) || 0 }));
+    Object.keys(ITEM_MAP).forEach(k => delete ITEM_MAP[k]);
+    Object.keys(ITEM_BY_KEY).forEach(k => delete ITEM_BY_KEY[k]);
+    ITEMS.forEach(it => {
+      ITEM_MAP[it.vn] = it;
+      ITEM_BY_KEY[itemKey(it.vn)] = it.vn;
+      it._k = norm(it.vn + ' ' + it.en);
+    });
+  }
+
+  // ---- State ----
+  // entries = unique (year, month, team, itemVN) -> qty. Entry List below is a matrix built from them.
+  const entries = [];
+  const entryListContainer = document.getElementById('entryListContainer');
+  // Columns F:U of sheet "order" (head = column header, team = value of the Team dropdown)
+  const TEAM_COLS = TEAMS.map(t => ({ team: t, head: t }));
+  let nextEntryId = 1;
+  let editingId = null;
+
+  function escapeHtml(str){
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  const PENCIL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
+  function attr(str){ return escapeHtml(str).replace(/"/g, '&quot;'); }
+  function optionsHtml(list){
+    return list.map(v => `<option value="${attr(v)}">${escapeHtml(v)}</option>`).join('');
+  }
+  function fmtNum(n){
+    const x = Math.round(Number(n) * 1000) / 1000;
+    return x.toLocaleString('en-US', { maximumFractionDigits: 3 });
+  }
+
+  // ---- Populate dropdowns ----
+  const yearEl = document.getElementById('year');
+  const monthEl = document.getElementById('month');
+  const teamEl = document.getElementById('team');
+  const itemVNEl = document.getElementById('itemVN');
+  const itemENEl = document.getElementById('itemEN');
+  const unitEl = document.getElementById('unit');
+  const qtyEl = document.getElementById('qty');
+  teamEl.innerHTML = '<option value="">Select</option>' + optionsHtml(TEAMS);
+  const comboInput = document.getElementById('itemVNInput');
+  const comboList = document.getElementById('itemVNList');
+
+  function syncItem(){
+    const it = ITEM_MAP[itemVNEl.value];
+    itemENEl.value = it ? it.en : '';
+    unitEl.value = it ? it.unit : '';
+    if(it) comboInput.value = it.vn;
+  }
+
+  // ---- Searchable Stationery(VN) dropdown ----
+  // Matches VN and EN names, ignores case and Vietnamese diacritics; every typed word must appear.
+  function norm(s){
+    return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  }
+  let comboMatches = [], comboActive = -1;
+
+  function highlight(text, terms){
+    if(!terms.length) return escapeHtml(text);
+    const n = norm(text);
+    const mask = new Array(text.length).fill(false);
+    terms.forEach(tm => {
+      let p = n.indexOf(tm);
+      while(p !== -1){ for(let k = p; k < p + tm.length && k < mask.length; k++) mask[k] = true; p = n.indexOf(tm, p + tm.length); }
+    });
+    let out = '', open = false;
+    for(let k = 0; k < text.length; k++){
+      if(mask[k] && !open){ out += '<mark>'; open = true; }
+      if(!mask[k] && open){ out += '</mark>'; open = false; }
+      out += escapeHtml(text[k]);
+    }
+    return open ? out + '</mark>' : out;
+  }
+  function renderCombo(){
+    const terms = norm(comboInput.value).split(/\s+/).filter(Boolean);
+    comboMatches = ITEMS.filter(i => terms.every(tm => i._k.includes(tm)));
+    if(comboActive >= comboMatches.length) comboActive = comboMatches.length - 1;
+    if(!comboMatches.length){
+      comboList.innerHTML = '<div class="combo-empty">No match</div>';
+    } else {
+      comboList.innerHTML = comboMatches.map((i, idx) =>
+        `<div class="combo-opt${idx === comboActive ? ' active' : ''}" role="option" data-idx="${idx}">` +
+        `<div class="vn">${highlight(i.vn, terms)}</div><div class="en">${highlight(i.en, terms)}</div></div>`).join('');
+    }
+  }
+  function openCombo(){
+    comboList.hidden = false; comboInput.setAttribute('aria-expanded', 'true');
+    renderCombo();
+    const cur = comboList.querySelector('.combo-opt.active');
+    if(cur) cur.scrollIntoView({ block: 'nearest' });
+  }
+  function closeCombo(){
+    comboList.hidden = true; comboInput.setAttribute('aria-expanded', 'false'); comboActive = -1;
+    // typed text that was not picked: go back to the chosen item (or clear)
+    comboInput.value = itemVNEl.value;
+  }
+  function pickItem(vn){
+    itemVNEl.value = vn;
+    syncItem();
+    comboList.hidden = true; comboInput.setAttribute('aria-expanded', 'false'); comboActive = -1;
+  }
+  comboInput.addEventListener('focus', () => { comboInput.select(); comboActive = -1; openCombo(); });
+  comboInput.addEventListener('click', () => { if(comboList.hidden) openCombo(); });
+  comboInput.addEventListener('input', () => {
+    itemVNEl.value = ''; itemENEl.value = ''; unitEl.value = '';
+    comboActive = 0; openCombo();
+  });
+  comboInput.addEventListener('keydown', e => {
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      e.preventDefault();
+      if(comboList.hidden) openCombo();
+      if(!comboMatches.length) return;
+      comboActive = e.key === 'ArrowDown' ? Math.min(comboActive + 1, comboMatches.length - 1) : Math.max(comboActive - 1, 0);
+      renderCombo();
+      const cur = comboList.querySelector('.combo-opt.active'); if(cur) cur.scrollIntoView({ block: 'nearest' });
+    } else if(e.key === 'Enter'){
+      if(!comboList.hidden){
+        e.preventDefault();
+        const pick = comboMatches[comboActive >= 0 ? comboActive : 0];
+        if(pick) pickItem(pick.vn);
+      }
+    } else if(e.key === 'Escape'){
+      if(!comboList.hidden){ e.stopPropagation(); closeCombo(); }
+    } else if(e.key === 'Tab'){
+      if(!comboList.hidden && comboActive >= 0 && comboMatches[comboActive]) pickItem(comboMatches[comboActive].vn);
+      else closeCombo();
+    }
+  });
+  comboList.addEventListener('mousedown', e => {            // mousedown: runs before the input loses focus
+    const opt = e.target.closest('.combo-opt');
+    if(!opt) return;
+    e.preventDefault();
+    const pick = comboMatches[Number(opt.dataset.idx)];
+    if(pick) pickItem(pick.vn);
+  });
+  comboInput.addEventListener('blur', () => { if(!comboList.hidden) closeCombo(); });
+
+  // ---- Toast ----
+  let toastTimer = null;
+  function showToast(msg, isError){
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast' + (isError ? ' error' : '');
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, isError ? 6000 : 2500);
+  }
+
+  // ---- Local storage (browser only) ----
+  const STORAGE_KEY = 'qa_stationery_purchase_entries_v2';
+  let lastPeriod = null;                       // Year / Month of the most recently entered data
+  function saveLocal(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({ entries: entries, nextId: nextEntryId, lastPeriod: lastPeriod })); }catch(e){}
+  }
+  function sameKey(a, b){
+    return a.year === b.year && a.month === b.month && a.team === b.team && a.itemVN === b.itemVN;
+  }
+  // Add qty to the entry with the same key, or create it. Returns {entry, previous}
+  function upsertEntry(data){
+    const found = entries.find(e => sameKey(e, data));
+    if(found){
+      const previous = found.qty;
+      found.qty = Math.round((found.qty + data.qty) * 1000) / 1000;
+      return { entry: found, previous: previous };
+    }
+    const entry = { id: nextEntryId++, year: data.year, month: data.month, team: data.team, itemVN: data.itemVN, qty: data.qty };
+    entries.push(entry);
+    return { entry: entry, previous: null };
+  }
+  function loadLocal(){
+    try{
+      const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      if(Array.isArray(d.entries)){
+        d.entries.forEach(e => {
+          if(!e || !e.itemVN || !e.team || !e.month || !(Number(e.qty) > 0)) return;
+          upsertEntry({ year: Number(e.year), month: e.month, team: e.team, itemVN: e.itemVN, qty: Number(e.qty) });
+        });
+        if(d.nextId > nextEntryId) nextEntryId = d.nextId;
+        if(d.lastPeriod && d.lastPeriod.year && d.lastPeriod.month) lastPeriod = d.lastPeriod;
+      }
+    }catch(e){}
+  }
+
+  // ---- Backend: Google Apps Script web app (Google Sheet = database) ----
+  const CATALOG_KEY = 'qa_stationery_catalog_v1';
+  const PENDING_KEY = 'qa_stationery_pending_v1';
+  const SEEN_KEY = 'qa_stationery_backend_seen_v1';
+  const apiConfigured = () => /^https:\/\/script\.google(usercontent)?\.com\//.test(API_URL);
+  const opOf = (op, e) => ({ op: op, year: e.year, month: e.month, team: e.team, itemVN: e.itemVN, qty: e.qty });
+  let pendingOps = [];                          // changes not yet saved to the sheet (kept in this browser until saved)
+  try{ pendingOps = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); }catch(e){}
+  if(!Array.isArray(pendingOps)) pendingOps = [];
+  function savePending(){ try{ localStorage.setItem(PENDING_KEY, JSON.stringify(pendingOps)); }catch(e){} }
+
+  // GET and POST use simple requests (no custom headers, text/plain body) so the browser sends no CORS preflight
+  async function apiGet(params){
+    const q = new URLSearchParams(Object.assign({ t: Date.now() }, params));
+    const res = await fetch(API_URL + (API_URL.includes('?') ? '&' : '?') + q, { redirect: 'follow' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error || 'API error');
+    return j;
+  }
+  async function apiPost(body){
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body), redirect: 'follow' });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error || 'API error');
+    return j;
+  }
+
+  const syncEl = document.getElementById('syncStatus');
+  function setSync(state){
+    const text = {
+      loading: 'Loading…', synced: 'Synced', saving: 'Saving…', noapi: 'API URL not set', error: 'Cannot load data',
+      offline: 'Offline · ' + pendingOps.length + ' unsaved'
+    }[state];
+    syncEl.textContent = text;
+    syncEl.dataset.state = state;
+  }
+
+  let syncPromise = null, retryTimer = null;
+  function scheduleRetry(){ clearTimeout(retryTimer); retryTimer = setTimeout(flushPending, 15000); }
+  function flushPending(){
+    if(syncPromise) return syncPromise;
+    if(!pendingOps.length || !apiConfigured()) return Promise.resolve();
+    syncPromise = (async () => {
+      setSync('saving');
+      try{
+        while(pendingOps.length){
+          const batch = pendingOps.slice(0, 100);
+          await apiPost({ action: 'ops', ops: batch });
+          pendingOps.splice(0, batch.length);
+          savePending();
+        }
+        setSync('synced');
+      }catch(err){
+        setSync('offline');
+        scheduleRetry();
+      }finally{
+        syncPromise = null;
+      }
+    })();
+    return syncPromise;
+  }
+  function queueOps(ops){
+    if(!ops.length) return;
+    pendingOps.push.apply(pendingOps, ops);
+    savePending();
+    if(apiConfigured()) flushPending(); else setSync('noapi');
+  }
+  window.addEventListener('online', flushPending);
+  window.addEventListener('beforeunload', e => { if(pendingOps.length){ e.preventDefault(); e.returnValue = ''; } });
+
+  function applyServerEntries(list){
+    entries.length = 0;
+    nextEntryId = 1;
+    (list || []).forEach(e => upsertEntry({ year: Number(e.year), month: e.month, team: e.team, itemVN: canonVN(e.itemVN), qty: Number(e.qty) }));
+    saveLocal();
+  }
+  function afterDataChanged(){
+    renderEntryList();
+    if(tabPanels.summary.classList.contains('active')){ refreshSummaryOptions(); renderSummaryCharts(); renderItemChart(); }
+  }
+
+  let lastLoadAt = 0;
+  async function loadRemote(silent){
+    if(!apiConfigured()){ setSync('noapi'); return false; }
+    if(!silent) setSync('loading');
+    try{
+      if(pendingOps.length){
+        await flushPending();
+        if(pendingOps.length) throw new Error('unsaved changes are still waiting to be sent');
+      }
+      const j = await apiGet({ action: 'init' });
+      setCatalog(j.items);
+      try{ localStorage.setItem(CATALOG_KEY, JSON.stringify(j.items)); }catch(e){}
+      applyServerEntries(j.entries);
+      lastLoadAt = Date.now();
+      setSync('synced');
+      afterDataChanged();
+      return true;
+    }catch(err){
+      setSync(pendingOps.length ? 'offline' : 'error');
+      if(!silent) showToast('Could not load from Google Sheet: ' + err.message, true);
+      return false;
+    }
+  }
+
+  // Photos are only needed for the Excel export: loaded on first export, shrunk to JPEG in the browser
+  const photosState = { loaded: false, force: false };
+  function prepareImage(raw){
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        try{
+          const sc = Math.min(1, 300 / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.max(1, Math.round(img.naturalWidth * sc)), h = Math.max(1, Math.round(img.naturalHeight * sc));
+          const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+          const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(img, 0, 0, w, h);
+          resolve({ b: cv.toDataURL('image/jpeg', 0.85).split(',')[1], w: w, h: h });
+        }catch(e){ resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = 'data:' + raw.mime + ';base64,' + raw.b64;
+    });
+  }
+  async function ensurePhotos(){
+    if(photosState.loaded && !photosState.force) return;
+    const j = await apiGet(photosState.force ? { action: 'photos', refresh: '1' } : { action: 'photos' });
+    const imgs = {};
+    await Promise.all(Object.keys(j.images).map(async k => { const p = await prepareImage(j.images[k]); if(p) imgs[k] = p; }));
+    PHOTO_IMGS = imgs;
+    PHOTO_OF = j.map;
+    photosState.loaded = true;
+    photosState.force = false;
+  }
+
+  // ---- Period filter (Year / Month) ----
+  const searchYear = document.getElementById('searchYear');
+  const searchMonth = document.getElementById('searchMonth');
+  searchMonth.innerHTML = '<option value="">All</option>' + optionsHtml(MONTHS);
+
+  function entryMatchesSearch(e){
+    const sy = searchYear.value.trim(), sm = searchMonth.value;
+    if(sy && String(e.year) !== sy) return false;
+    if(sm && e.month !== sm) return false;
+    return true;
+  }
+  function setPeriod(year, month){
+    searchYear.value = year; searchMonth.value = month;
+  }
+  function initialPeriod(){
+    if(!lastPeriod && entries.length){                          // older saved data without lastPeriod
+      const e = entries.reduce((m, x) => x.id > m.id ? x : m, entries[0]);
+      lastPeriod = { year: e.year, month: e.month };
+    }
+    if(lastPeriod) setPeriod(lastPeriod.year, lastPeriod.month); else defaultPeriod();
+  }
+  function defaultPeriod(){
+    const now = new Date();
+    setPeriod(now.getFullYear(), MONTHS[now.getMonth()]);
+  }
+  searchYear.addEventListener('input', () => renderEntryList());
+  searchMonth.addEventListener('change', () => renderEntryList());
+
+  // ---- Render list (matrix: rows = stationery items, columns = teams) ----
+  const FZ_W = [30, 111, 111, 36, 58];
+  const TEAM_W = 44, TOTAL_W = 44, REV_W = 24;            // widths of frozen columns A:E
+  const FZ_LEFT = FZ_W.reduce((acc, w, i) => { acc.push(i ? acc[i-1] + FZ_W[i-1] : 0); return acc; }, []);
+  function fz(i, extra){
+    return `class="fz${i === 4 ? ' fz-last' : ''}${extra ? ' ' + extra : ''}" style="left:${FZ_LEFT[i]}px"`;
+  }
+
+  // rows = stationery items (order of tab "list"), columns = teams
+  function buildMatrix(list){
+    const rowsByItem = new Map();
+    list.forEach(e => {
+      if(!rowsByItem.has(e.itemVN)) rowsByItem.set(e.itemVN, {});
+      const r = rowsByItem.get(e.itemVN);
+      r[e.team] = (r[e.team] || 0) + e.qty;
+    });
+    const order = ITEMS.map(i => i.vn);
+    const itemNames = Array.from(rowsByItem.keys()).sort((a, b) => {
+      const ia = order.indexOf(a), ib = order.indexOf(b);
+      return (ia < 0 ? 1e9 : ia) - (ib < 0 ? 1e9 : ib);
+    });
+    return { itemNames, rowsByItem };
+  }
+
+  function renderEntryList(){
+    const shown = entries.filter(entryMatchesSearch);
+    if(entries.length === 0){
+      entryListContainer.innerHTML = '<div class="entry-list-empty" id="entryListEmpty">No entries yet.</div>';
+      return;
+    }
+    if(shown.length === 0){
+      entryListContainer.innerHTML = '<div class="entry-list-empty">No entries for this period.</div>';
+      return;
+    }
+    const prevWrap = entryListContainer.querySelector('.entry-table-wrap');
+    const prevScroll = prevWrap ? prevWrap.scrollTop : 0;
+    const prevScrollX = prevWrap ? prevWrap.scrollLeft : 0;
+
+    const { itemNames, rowsByItem } = buildMatrix(shown);
+
+    const tableW = FZ_W.reduce((a, b) => a + b, 0) + TEAM_COLS.length * TEAM_W + TOTAL_W + REV_W;
+    let html = `<div class="entry-table-wrap"><table class="entry-table" style="width:${tableW}px"><colgroup>`;
+    FZ_W.forEach(w => { html += `<col style="width:${w}px">`; });
+    TEAM_COLS.forEach(() => { html += `<col style="width:${TEAM_W}px">`; });
+    html += `<col style="width:${TOTAL_W}px"><col style="width:${REV_W}px"></colgroup>`;
+
+    html += '<thead><tr>';
+    ['No.', 'Stationery(VN)', 'Stationery(EN)', 'Unit', 'Quotation'].forEach((h, i) => { html += `<th ${fz(i)}>${h}</th>`; });
+    TEAM_COLS.forEach(c => { html += `<th title="${attr(c.team)}">${escapeHtml(c.head)}</th>`; });
+    html += '<th>Total</th><th></th></tr></thead><tbody>';
+
+    const colTotals = {};
+    let grand = 0;
+    itemNames.forEach((name, idx) => {
+      const it = ITEM_MAP[name] || { vn: name, en: '', unit: '', price: '' };
+      const r = rowsByItem.get(name);
+      let rowTotal = 0;
+      html += `<tr><td ${fz(0)}>${idx + 1}</td>`;
+      html += `<td ${fz(1, 'cell-left')}><div class="cell-text" title="${attr(it.vn)}">${escapeHtml(it.vn)}</div></td>`;
+      html += `<td ${fz(2, 'cell-left')}><div class="cell-text" title="${attr(it.en)}">${escapeHtml(it.en)}</div></td>`;
+      html += `<td ${fz(3)}>${escapeHtml(it.unit)}</td>`;
+      html += `<td ${fz(4, 'cell-num nowrap')}>${it.price === '' ? '' : fmtNum(it.price)}</td>`;
+      TEAM_COLS.forEach(c => {
+        const q = r[c.team];
+        if(q){
+          rowTotal += q; colTotals[c.team] = (colTotals[c.team] || 0) + q;
+          html += `<td class="qty-cell"><div class="qc"><span class="qv">${fmtNum(q)}</span>` +
+                  `<button class="cell-edit" type="button" data-action="edit" data-item="${attr(name)}" data-team="${attr(c.team)}" title="Revise" aria-label="Revise ${attr(c.team)} quantity">${PENCIL_SVG}</button></div></td>`;
+        } else {
+          html += '<td></td>';
+        }
+      });
+      grand += rowTotal;
+      html += `<td class="col-total">${fmtNum(rowTotal)}</td>`;
+      html += `<td><div class="row-actions"><button class="row-delete" data-action="delete" data-item="${attr(name)}" type="button" aria-label="Delete row ${idx + 1}">×</button></div></td></tr>`;
+    });
+    html += '</tbody><tfoot><tr>';
+    html += `<td ${fz(0)} colspan="1"></td><td ${fz(1)}></td><td ${fz(2)}></td><td ${fz(3)}></td><td ${fz(4)}>Total</td>`;
+    TEAM_COLS.forEach(c => { html += `<td>${colTotals[c.team] ? fmtNum(colTotals[c.team]) : ''}</td>`; });
+    html += `<td>${fmtNum(grand)}</td><td></td></tr></tfoot></table></div>`;
+    entryListContainer.innerHTML = html;
+
+    const newWrap = entryListContainer.querySelector('.entry-table-wrap');
+    if(newWrap){ newWrap.scrollTop = prevScroll; newWrap.scrollLeft = prevScrollX; }
+  }
+
+  // ---- Confirm dialog ----
+  const confirmOverlay = document.getElementById('confirmOverlay');
+  const confirmMessage = document.getElementById('confirmMessage');
+  let pendingAction = null;
+  function openConfirm(message, onYes){
+    pendingAction = onYes;
+    confirmMessage.textContent = message;
+    confirmOverlay.hidden = false;
+    document.getElementById('confirmNo').focus();
+  }
+  function closeConfirm(){ confirmOverlay.hidden = true; pendingAction = null; }
+  document.getElementById('confirmYes').addEventListener('click', () => {
+    const action = pendingAction; closeConfirm(); if(action) action();
+  });
+  document.getElementById('confirmNo').addEventListener('click', closeConfirm);
+  confirmOverlay.addEventListener('click', e => { if(e.target === confirmOverlay) closeConfirm(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && !confirmOverlay.hidden) closeConfirm(); });
+
+  // ---- Form helpers / revise mode ----
+  const revisingNote = document.getElementById('revisingNote');
+  const revisingText = document.getElementById('revisingText');
+  const entryBlockEl = document.getElementById('entry-block');
+
+  // Clears only the item part; Year / Month / Team keep the last chosen values
+  function resetItemFields(){
+    itemVNEl.value = '';
+    comboInput.value = '';
+    qtyEl.value = '';
+    syncItem();
+  }
+  function exitReviseMode(){
+    editingId = null;
+    revisingNote.hidden = true;
+    revisingText.textContent = '';
+  }
+  function startRevise(entry){
+    editingId = entry.id;
+    yearEl.value = entry.year;
+    monthEl.value = entry.month;
+    teamEl.value = entry.team;
+    itemVNEl.value = entry.itemVN;
+    qtyEl.value = entry.qty;
+    syncItem();
+    const itName = (ITEM_MAP[entry.itemVN] || {}).en || entry.itemVN;
+    revisingText.textContent = `Revising: ${itName} · ${entry.team}`;
+    revisingNote.hidden = false;
+    entryBlockEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    qtyEl.focus();
+  }
+  document.getElementById('revisingCancel').addEventListener('click', () => { exitReviseMode(); resetItemFields(); });
+
+  // Row actions: click a quantity to revise it; x deletes the whole row of the shown period
+  entryListContainer.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if(!el) return;
+    const item = el.dataset.item;
+    if(el.dataset.action === 'delete'){
+      openConfirm('Are you sure to delete?', () => {
+        const ops = [];
+        for(let i = entries.length - 1; i >= 0; i--){
+          if(entries[i].itemVN === item && entryMatchesSearch(entries[i])){
+            if(entries[i].id === editingId){ exitReviseMode(); resetItemFields(); }
+            ops.push(opOf('del', entries[i]));
+            entries.splice(i, 1);
+          }
+        }
+        saveLocal();
+        queueOps(ops);
+        renderEntryList();
+      });
+    } else if(el.dataset.action === 'edit'){
+      const team = el.dataset.team;
+      const matches = entries.filter(en => en.itemVN === item && en.team === team && entryMatchesSearch(en));
+      if(matches.length !== 1){
+        showToast('Select a single Year and Month to revise this cell.', true);
+        return;
+      }
+      openConfirm('Are you sure to revise?', () => startRevise(matches[0]));
+    }
+  });
+
+  // ---- Add / update ----
+  document.getElementById('addEntryBtn').addEventListener('click', () => {
+    const year = yearEl.value.trim();
+    const qty = qtyEl.value.trim();
+    const missing = [
+      [!/^\d{4}$/.test(year), yearEl, 'Year (4 digits)'],
+      [!monthEl.value, monthEl, 'Month'],
+      [!teamEl.value, teamEl, 'Team'],
+      [!itemVNEl.value, comboInput, 'Stationery(VN)'],
+      [!(qty !== '' && Number(qty) > 0), qtyEl, 'Qty (> 0)']
+    ].find(m => m[0]);
+    if(missing){
+      showToast('Please enter: ' + missing[2], true);
+      missing[1].focus();
+      return;
+    }
+
+    const data = { year: Number(year), month: monthEl.value, team: teamEl.value, itemVN: itemVNEl.value, qty: Number(qty) };
+    let msg = '';
+    let oldEntry = null;
+    if(editingId !== null){
+      const idx = entries.findIndex(e => e.id === editingId);
+      if(idx >= 0){ oldEntry = entries[idx]; entries.splice(idx, 1); }       // revise = replace the old value
+    }
+    const res = upsertEntry(data);
+    const ops = [];
+    if(oldEntry && !sameKey(oldEntry, res.entry)) ops.push(opOf('del', oldEntry));
+    ops.push(opOf('set', res.entry));
+    if(res.previous !== null){
+      msg = editingId !== null
+        ? `Merged with existing value: ${fmtNum(res.entry.qty)}`
+        : `Added to existing ${fmtNum(res.previous)} → ${fmtNum(res.entry.qty)}`;
+    }
+    lastPeriod = { year: data.year, month: data.month };
+    saveLocal();
+    queueOps(ops);
+    exitReviseMode();
+    setPeriod(data.year, data.month);            // show the period just entered
+    renderEntryList();
+    resetItemFields();
+    if(msg) showToast(msg);
+  });
+
+  // ---- Export Excel: builds a real .xlsx in the browser (no library), layout like sheet "order" ----
+  const CRC_TABLE = (() => {
+    const tb = new Uint32Array(256);
+    for(let n = 0; n < 256; n++){ let c = n; for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); tb[n] = c >>> 0; }
+    return tb;
+  })();
+  function crc32(bytes){
+    let c = 0xFFFFFFFF;
+    for(let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function zipStore(files){                                   // zip without compression
+    const enc = new TextEncoder();
+    const u16 = v => [v & 255, (v >> 8) & 255];
+    const u32 = v => [v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >>> 24) & 255];
+    const parts = [], central = [];
+    let offset = 0;
+    files.forEach(f => {
+      const name = enc.encode(f.name), data = f.bytes || enc.encode(f.text), crc = crc32(data), size = data.length;
+      const local = Uint8Array.from([0x50,0x4b,3,4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21),
+        ...u32(crc), ...u32(size), ...u32(size), ...u16(name.length), ...u16(0)]);
+      parts.push(local, name, data);
+      central.push(Uint8Array.from([0x50,0x4b,1,2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21),
+        ...u32(crc), ...u32(size), ...u32(size), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset)]), name);
+      offset += local.length + name.length + size;
+    });
+    const cdSize = central.reduce((s, p) => s + p.length, 0);
+    const end = Uint8Array.from([0x50,0x4b,5,6, ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cdSize), ...u32(offset), ...u16(0)]);
+    return new Blob([...parts, ...central, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+  const xmlEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  function colLetter(i){ let s = '', n = i + 1; while(n > 0){ const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+  const r3 = n => Math.round(n * 1000) / 1000;
+
+  // ---- Workbook layout: copied from sheets "purchase request" and "order" of Stationery_rút gọn.xlsx ----
+  const b64bytes = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
+
+  function buildOrderXlsx(shown, title){
+    const T = XL_TPL;
+    const { itemNames, rowsByItem } = buildMatrix(shown);
+    const N = itemNames.length, d = N - 1;
+    const str = (ref, text, s) => `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(text)}</t></is></c>`;
+    const num = (ref, v, s) => `<c r="${ref}" s="${s}"><v>${v}</v></c>`;
+    const fml = (ref, f, v, s) => `<c r="${ref}" s="${s}"><f>${xmlEsc(f)}</f><v>${v}</v></c>`;
+    const blank = (ref, s) => `<c r="${ref}" s="${s}"/>`;
+
+    const data = itemNames.map(name => {
+      const it = ITEM_MAP[name] || { vn: name, en: '', unit: '', price: 0 };
+      const r = rowsByItem.get(name);
+      let total = 0; const teams = [];
+      TEAM_COLS.forEach(c => { if(r[c.team]){ total += r[c.team]; teams.push(c.team); } });
+      return { name: name, it: it, r: r, total: r3(total), teams: teams };
+    });
+
+    // ---------- Sheet "purchase request" ----------
+    let rows1 = '', sumAmt = 0;
+    data.forEach((x, i) => {
+      const r = 13 + i, amt = r3(x.total * x.it.price);
+      sumAmt += amt;
+      rows1 += `<row r="${r}" spans="1:13" s="29" customFormat="1" ht="55.5" customHeight="1">` +
+        fml('A' + r, 'ROW()-12', i + 1, 31) + str('B' + r, x.it.vn, 32) + str('C' + r, x.it.en, 32) + str('D' + r, x.it.unit, 33) +
+        num('E' + r, x.it.price, 34) + num('F' + r, x.total, 35) + fml('G' + r, `F${r}*E${r}`, amt, 36) +
+        str('H' + r, 'QA Stationery', 37) + str('I' + r, x.teams.join(', '), 33) + blank('J' + r, 33) + '</row>';
+    });
+    sumAmt = r3(sumAmt);
+    const vat = r3(sumAmt * 0.08), grand = r3(sumAmt + vat);
+    let tail = T.s1tail
+      .replace('<f>SUM(G13:G13)</f><v>0</v>', `<f>SUM(G13:G${12 + N})</f><v>${sumAmt}</v>`)
+      .replace('<f>+G14*8%</f><v>0</v>', `<f>+G${14 + d}*8%</f><v>${vat}</v>`)
+      .replace('<f>+G14+G15</f><v>0</v>', `<f>+G${14 + d}+G${15 + d}</f><v>${grand}</v>`)
+      .replace(/<row r="(\d+)"/g, (m, n) => `<row r="${+n + d}"`)
+      .replace(/<c r="([A-Z]+)(\d+)"/g, (m, c, n) => `<c r="${c}${+n + d}"`);
+    const merges1 = ['A2:J2', 'A3:J3', 'J4:J7', 'D7:E7', 'D8:E8', `I${18 + d}:J${18 + d}`, `I${22 + d}:J${22 + d}`,
+      `A${14 + d}:F${14 + d}`, `H${14 + d}:J${14 + d}`, `A${15 + d}:F${15 + d}`, `H${15 + d}:J${15 + d}`, `A${16 + d}:F${16 + d}`, `H${16 + d}:J${16 + d}`];
+    const sheet1 = T.s1head.replace('<dimension ref="A1:M29"/>', `<dimension ref="A1:M${29 + d}"/>`) + rows1 + tail + '</sheetData>' +
+      `<mergeCells count="${merges1.length}">${merges1.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` + T.s1post;
+
+    // Pictures (column J): each picture is scaled to the height of its row
+    const ROW_H = 704850, COL_W = 2209800, PAD_Y = 22860, PAD_X = 38100;
+    const usedImgs = [], imgRid = {};
+    let anchors = '', picId = 5000;
+    data.forEach((x, i) => {
+      const key = PHOTO_OF[x.it.vn]; if(!key) return;
+      const im = PHOTO_IMGS[key]; if(!im) return;
+      if(!(key in imgRid)){ imgRid[key] = 'rId' + (100 + usedImgs.length); usedImgs.push(key); }
+      const sc = Math.min((ROW_H - 2 * PAD_Y) / im.h, (COL_W - 2 * PAD_X) / im.w);
+      const cx = Math.round(im.w * sc), cy = Math.round(im.h * sc);
+      const x0 = Math.round((COL_W - cx) / 2), y0 = Math.round((ROW_H - cy) / 2), row = 12 + i, id = picId++;
+      anchors += `<xdr:twoCellAnchor editAs="twoCell"><xdr:from><xdr:col>9</xdr:col><xdr:colOff>${x0}</xdr:colOff><xdr:row>${row}</xdr:row><xdr:rowOff>${y0}</xdr:rowOff></xdr:from>` +
+        `<xdr:to><xdr:col>9</xdr:col><xdr:colOff>${x0 + cx}</xdr:colOff><xdr:row>${row}</xdr:row><xdr:rowOff>${y0 + cy}</xdr:rowOff></xdr:to>` +
+        `<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${id}" name="Picture ${id}" descr="${attr(x.it.vn)}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>` +
+        `<xdr:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${imgRid[key]}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>` +
+        `<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:twoCellAnchor>`;
+    });
+    const drawing1 = T.drawing1.replace('</xdr:wsDr>', anchors + '</xdr:wsDr>');
+    const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const drawingRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      `<Relationship Id="rId1" Type="${REL}/image" Target="../media/image1.png"/>` +
+      usedImgs.map((k, j) => `<Relationship Id="${imgRid[k]}" Type="${REL}/image" Target="../media/photo${j + 1}.jpeg"/>`).join('') + '</Relationships>';
+
+    // ---------- Sheet "order" ----------
+    const first = 5, last = first + N - 1, totalRow = last + 1;
+    let rows2 = '';
+    const colSum = new Array(TEAM_COLS.length).fill(0);
+    let grandQty = 0;
+    data.forEach((x, i) => {
+      const r = first + i;
+      let cells = fml('A' + r, 'ROW()-5', i + 1, 77) + str('B' + r, x.it.vn, 83) + str('C' + r, x.it.en, 83) + str('D' + r, x.it.unit, 84) + num('E' + r, x.it.price, 84);
+      TEAM_COLS.forEach((c, k) => {
+        const q = x.r[c.team], ref = colLetter(5 + k) + r;
+        if(q){ colSum[k] += q; cells += num(ref, r3(q), 77); } else cells += blank(ref, 77);
+      });
+      grandQty += x.total;
+      cells += fml('V' + r, `SUM(F${r}:U${r})`, x.total, 85);
+      rows2 += `<row r="${r}" spans="1:22" s="78" customFormat="1" ht="18.75" customHeight="1">${cells}</row>`;
+    });
+    let tr = `<c r="A${totalRow}" s="121" t="s"><v>18</v></c>` + ['B', 'C', 'D'].map(c => blank(c + totalRow, 122)).join('') + blank('E' + totalRow, 123);
+    TEAM_COLS.forEach((c, k) => {
+      const L = colLetter(5 + k);
+      const sf = `SUM(${L}${first}:${L}${last})`;           // teams with no quantity stay blank, like the Entry List
+      tr += colSum[k] ? `<c r="${L}${totalRow}" s="105"><f>IF(${sf}=0,"",${sf})</f><v>${r3(colSum[k])}</v></c>`
+                      : `<c r="${L}${totalRow}" s="105" t="str"><f>IF(${sf}=0,"",${sf})</f><v></v></c>`;
+    });
+    tr += fml('V' + totalRow, `SUM(V${first}:V${last})`, r3(grandQty), 106);
+    rows2 += `<row r="${totalRow}" spans="1:22" s="78" customFormat="1" ht="18.75" customHeight="1">${tr}</row>`;
+    const head2 = T.s2head
+      .replace('<dimension ref="A1:XFC20"/>', `<dimension ref="A1:V${totalRow}"/>`)
+      .replace('<c r="A1" s="120" t="s"><v>27</v></c>', str('A1', title, 120))
+      .replace('<f>SUBTOTAL(3,A5:A5)</f><v>1</v>', `<f>SUBTOTAL(3,A5:A${last})</f><v>${N}</v>`);
+    const sheet2 = head2 + rows2 + '</sheetData>' + `<autoFilter ref="A4:V${totalRow}"/>` +
+      `<mergeCells count="2"><mergeCell ref="A1:V1"/><mergeCell ref="A${totalRow}:E${totalRow}"/></mergeCells>` + T.s2post;
+
+    // ---------- Package ----------
+    const XH = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+    const ctypes = XH + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/>' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="vml" ContentType="application/vnd.openxmlformats-officedocument.vmlDrawing"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+      '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>' +
+      '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' +
+      [1, 2, 3].map(n => `<Override PartName="/xl/ctrlProps/ctrlProp${n}.xml" ContentType="application/vnd.ms-excel.controlproperties+xml"/>`).join('') + '</Types>';
+    const workbook = XH + `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="${REL}"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="16380" windowHeight="8190" tabRatio="500" activeTab="1"/></bookViews>` +
+      '<sheets><sheet name="purchase request" sheetId="1" r:id="rId1"/><sheet name="order" sheetId="2" r:id="rId2"/></sheets>' +
+      `<definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="1" hidden="1">order!$A$4:$V$${totalRow}</definedName>` +
+      `<definedName name="_xlnm.Print_Area" localSheetId="1">order!$A$1:$V$${totalRow}</definedName>` +
+      `<definedName name="_xlnm.Print_Area" localSheetId="0">'purchase request'!$A$1:$J$${22 + d}</definedName></definedNames><calcPr calcId="162913" fullCalcOnLoad="1"/></workbook>`;
+    const files = [
+      { name: '[Content_Types].xml', text: ctypes },
+      { name: '_rels/.rels', text: XH + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+      { name: 'xl/workbook.xml', text: workbook },
+      { name: 'xl/_rels/workbook.xml.rels', text: XH + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${REL}/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="${REL}/theme" Target="theme/theme1.xml"/><Relationship Id="rId4" Type="${REL}/styles" Target="styles.xml"/><Relationship Id="rId5" Type="${REL}/sharedStrings" Target="sharedStrings.xml"/></Relationships>` },
+      { name: 'xl/styles.xml', text: T.styles },
+      { name: 'xl/sharedStrings.xml', text: T.shared },
+      { name: 'xl/theme/theme1.xml', text: T.theme },
+      { name: 'xl/worksheets/sheet1.xml', text: sheet1 },
+      { name: 'xl/worksheets/sheet2.xml', text: sheet2 },
+      { name: 'xl/worksheets/_rels/sheet1.xml.rels', text: T.sheet1rels },
+      { name: 'xl/drawings/drawing1.xml', text: drawing1 },
+      { name: 'xl/drawings/_rels/drawing1.xml.rels', text: XH + drawingRels.replace(XH, '') },
+      { name: 'xl/drawings/vmlDrawing1.vml', text: T.vml },
+      { name: 'xl/ctrlProps/ctrlProp1.xml', text: T.ctrl1 },
+      { name: 'xl/ctrlProps/ctrlProp2.xml', text: T.ctrl2 },
+      { name: 'xl/ctrlProps/ctrlProp3.xml', text: T.ctrl3 },
+      { name: 'xl/media/image1.png', bytes: b64bytes(T.logo) }
+    ];
+    usedImgs.forEach((k, j) => files.push({ name: `xl/media/photo${j + 1}.jpeg`, bytes: b64bytes(PHOTO_IMGS[k].b) }));
+    return zipStore(files);
+  }
+
+  const exportBtn = document.getElementById('exportBtn');
+  exportBtn.addEventListener('click', async () => {
+    const shown = entries.filter(entryMatchesSearch);      // exactly what the Entry List shows (Year / Month dropdowns)
+    if(!shown.length){ showToast('No data to export for the selected Year / Month.', true); return; }
+    const sy = searchYear.value.trim(), sm = searchMonth.value;
+    const title = 'QA STATIONERY ORDER LIST - ' + (sy || 'All years') + (sm ? ' (' + sm + ')' : '');
+    const fileName = 'QA_Stationery_Order_' + (sy || 'All') + (sm ? '_' + sm : '') + '.xlsx';
+    exportBtn.disabled = true;
+    let photoError = '';
+    try{
+      if(apiConfigured()){
+        showToast('Preparing photos…');
+        try{ await ensurePhotos(); }catch(err){ photoError = err.message; }
+      }else{
+        photoError = 'API URL not set';
+      }
+      const blob = buildOrderXlsx(shown, title);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      if(photoError) showToast('Exported ' + fileName + ' without photos (' + photoError + ')', true);
+      else showToast('Exported ' + fileName);
+    }catch(err){
+      showToast('Export failed: ' + err.message, true);
+    }finally{
+      exportBtn.disabled = false;
+    }
+  });
+
+  // Reload everything from the Google Sheet (items, entries; photos are re-read on the next export)
+  document.getElementById('reloadBtn').addEventListener('click', async () => {
+    photosState.force = true;
+    exitReviseMode(); resetItemFields();
+    if(await loadRemote(false)) showToast('Reloaded from Google Sheet');
+  });
+  // Coming back to the tab after a while: quietly pick up changes made by other people
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible' && Date.now() - lastLoadAt > 60000 &&
+       !pendingOps.length && !syncPromise && editingId === null && apiConfigured()) loadRemote(true);
+  });
+
+  // Entry List takes all the height left under the Entry block; the table scrolls inside (vertical bar on the right)
+  const entryListBlockEl = document.getElementById('entry-list-block');
+  function updateEntryListMaxHeight(){
+    const r = entryListBlockEl.getBoundingClientRect();
+    if(!r.width) return;                                   // tab hidden
+    const bottomGap = 18;
+    entryListBlockEl.style.setProperty('--entry-list-max', Math.max(220, window.innerHeight - r.top - bottomGap) + 'px');
+  }
+  // Year / Month filter boxes in Entry List = same width as Year / Month boxes in Entry
+  function syncSearchWidths(){
+    const wy = yearEl.getBoundingClientRect().width, wm = monthEl.getBoundingClientRect().width;
+    if(!wy || !wm) return;                                 // tab hidden
+    searchYear.style.width = wy + 'px';
+    searchMonth.style.width = wm + 'px';
+  }
+  function updateLayout(){ updateEntryListMaxHeight(); syncSearchWidths(); }
+  updateLayout();
+  if(window.ResizeObserver) new ResizeObserver(updateLayout).observe(entryBlockEl);
+  window.addEventListener('resize', updateLayout);
+  tabButtons.forEach(btn => btn.addEventListener('click', () => setTimeout(updateLayout, 0)));
+
+  // ---- Summary tab: charts (cost = qty x quotation price, drawn without any library) ----
+  const TEAM_COLORS = ['#1B3A63','#1E8E5A','#3B7DDE','#E67E22','#8E44AD','#C0392B','#16A085','#D4AC0D','#7F8C8D','#2ECC71','#E84393','#00A8CC','#A0522D','#5D6D7E','#D35400','#6C5CE7'];
+  const CATS = [
+    { key:'pens',   name:'Pens & Markers',    color:'#3B7DDE' },
+    { key:'tape',   name:'Tape',              color:'#E67E22' },
+    { key:'paper',  name:'Paper & Forms',     color:'#1E8E5A' },
+    { key:'files',  name:'Files & Binders',   color:'#8E44AD' },
+    { key:'staple', name:'Staplers & Clips',  color:'#C0392B' },
+    { key:'stamp',  name:'Stamps & Ink',      color:'#00A8CC' },
+    { key:'batt',   name:'Batteries',         color:'#D4AC0D' },
+    { key:'other',  name:'Others',            color:'#7F8C8D' }
+  ];
+  function itemCat(vn){
+    const n = norm(vn);
+    if(/^but /.test(n)) return 'pens';
+    if(/^bang keo/.test(n)) return 'tape';
+    if(/^(giay|to a4|cuon|tap |hoa don|phieu|nhua ep|bao thu)/.test(n)) return 'paper';
+    if(/^(bia |ke |nep )/.test(n)) return 'files';
+    if(/^(bam |kim bam|may kim bam|kep |go ghim)/.test(n)) return 'staple';
+    if(/^(moc |muc |sticker)/.test(n)) return 'stamp';
+    if(/^pin /.test(n)) return 'batt';
+    return 'other';
+  }
+  function entryCost(e){ const it = ITEM_MAP[e.itemVN]; return it ? e.qty * it.price : 0; }
+  function compact(n){
+    if(n >= 1e6){ return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M'; }
+    if(n >= 1e3){ return Math.round(n / 1e3) + 'k'; }
+    return String(Math.round(n));
+  }
+  function niceMax(v){
+    const p = Math.pow(10, Math.floor(Math.log10(v)));
+    return ([1, 2, 2.5, 5, 10].map(k => k * p).find(x => x >= v)) || v;
+  }
+  function periodMatch(e, y, m){ return (!y || String(e.year) === y) && (!m || e.month === m); }
+  const sumEls = {
+    y1: document.getElementById('sumYear'), m1: document.getElementById('sumMonth'),
+    y2: document.getElementById('sumYear2'), m2: document.getElementById('sumMonth2'), t2: document.getElementById('sumTeam2')
+  };
+  let summaryReady = false;
+  function fillSel(sel, opts, wanted){
+    sel.innerHTML = opts.map(o => `<option value="${attr(o.v)}">${escapeHtml(o.t)}</option>`).join('');
+    sel.value = wanted;
+    if(sel.value !== wanted) sel.value = opts[0].v;
+  }
+  function refreshSummaryOptions(){
+    const years = Array.from(new Set(entries.map(e => String(e.year)).concat(String(new Date().getFullYear())))).sort((a, b) => b - a);
+    const yOpts = [{ v:'', t:'All' }].concat(years.map(y => ({ v:y, t:y })));
+    const mOpts = [{ v:'', t:'All' }].concat(MONTHS.map(m => ({ v:m, t:m })));
+    const tOpts = [{ v:'', t:'All' }].concat(TEAMS.map(t => ({ v:t, t:t })));
+    const first = !summaryReady;
+    const dy = first ? searchYear.value : null, dm = first ? searchMonth.value : null;   // first time: same period as Entry List
+    fillSel(sumEls.y1, yOpts, first ? dy : sumEls.y1.value);
+    fillSel(sumEls.m1, mOpts, first ? dm : sumEls.m1.value);
+    fillSel(sumEls.y2, yOpts, first ? dy : sumEls.y2.value);
+    fillSel(sumEls.m2, mOpts, first ? dm : sumEls.m2.value);
+    fillSel(sumEls.t2, tOpts, first ? '' : sumEls.t2.value);
+    summaryReady = true;
+  }
+  function periodText(y, m){ return (y || 'All years') + ' · ' + (m || 'All months'); }
+  function emptyHtml(){ return '<div class="chart-empty">No data for this selection.</div>'; }
+
+  function renderBarChart(list){
+    const tot = TEAMS.map(t => list.filter(e => e.team === t).reduce((s, e) => s + entryCost(e), 0));
+    const max = Math.max.apply(null, tot);
+    if(!(max > 0)) return emptyHtml();
+    const nm = niceMax(max), W = 900, H = 310, L = 52, R = 10, T = 22, B = 46;
+    const pw = W - L - R, ph = H - T - B, bw = pw / TEAMS.length;
+    let s = `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Total cost by team">`;
+    for(let i = 0; i <= 4; i++){
+      const y = T + ph - ph * i / 4;
+      s += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="#E3E6EA" stroke-width="1"/>`;
+      s += `<text class="ax" x="${L - 6}" y="${y + 3}" text-anchor="end">${compact(nm * i / 4)}</text>`;
+    }
+    TEAMS.forEach((t, i) => {
+      const h = ph * tot[i] / nm, x = L + i * bw + bw * 0.18, w = bw * 0.64, y = T + ph - h, cx = L + i * bw + bw / 2;
+      if(tot[i] > 0){
+        s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${TEAM_COLORS[i]}"><title>${escapeHtml(t)}: ${fmtNum(tot[i])} VND</title></rect>`;
+        s += `<text class="val" x="${cx}" y="${y - 4}" text-anchor="middle">${compact(tot[i])}</text>`;
+      }
+      const parts = t.split(' '), a = parts[0], b = parts.slice(1).join(' ');
+      s += `<text class="ax" x="${cx}" y="${T + ph + 14}" text-anchor="middle">${escapeHtml(a)}${b ? `<tspan x="${cx}" dy="12">${escapeHtml(b)}</tspan>` : ''}</text>`;
+    });
+    return s + '</svg>';
+  }
+
+  function renderPieChart(list){
+    const rows = TEAMS.map((t, i) => ({ team:t, color:TEAM_COLORS[i], val:list.filter(e => e.team === t).reduce((s, e) => s + entryCost(e), 0) }))
+      .filter(r => r.val > 0).sort((a, b) => b.val - a.val);
+    const total = rows.reduce((s, r) => s + r.val, 0);
+    if(!(total > 0)) return emptyHtml();
+    const cx = 120, cy = 120, R = 112, r = 62;
+    const pt = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+    let a0 = -Math.PI / 2, s = '<svg viewBox="0 0 240 240" role="img" aria-label="Cost share by team">';
+    rows.forEach(row => {
+      const span = row.val / total * Math.PI * 2, a1 = a0 + span;
+      const tip = `<title>${escapeHtml(row.team)}: ${fmtNum(row.val)} VND (${(row.val / total * 100).toFixed(1)}%)</title>`;
+      if(span >= Math.PI * 2 - 1e-6){
+        s += `<circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" fill="none" stroke="${row.color}" stroke-width="${R - r}">${tip}</circle>`;
+      } else {
+        const p0 = pt(R, a0), p1 = pt(R, a1), p2 = pt(r, a1), p3 = pt(r, a0), large = span > Math.PI ? 1 : 0;
+        s += `<path d="M${p0[0]} ${p0[1]} A${R} ${R} 0 ${large} 1 ${p1[0]} ${p1[1]} L${p2[0]} ${p2[1]} A${r} ${r} 0 ${large} 0 ${p3[0]} ${p3[1]} Z" fill="${row.color}" stroke="#fff" stroke-width="1.5">${tip}</path>`;
+      }
+      a0 = a1;
+    });
+    s += `<text x="${cx}" y="${cy - 2}" text-anchor="middle" font-size="16" font-weight="700" fill="#1B3A63">${compact(total)}</text>`;
+    s += `<text x="${cx}" y="${cy + 14}" text-anchor="middle" font-size="10" fill="#5C6670">VND total</text></svg>`;
+    const legend = rows.map(row =>
+      `<div class="lg"><span class="dot" style="background:${row.color}"></span><span>${escapeHtml(row.team)}</span>` +
+      `<span class="num"><b>${(row.val / total * 100).toFixed(1)}%</b></span><span class="num">${fmtNum(row.val)}</span></div>`).join('');
+    return `<div class="pie-wrap">${s}<div class="pie-legend">${legend}</div></div>`;
+  }
+
+  function renderStackChart(list){
+    const rows = TEAMS.map(t => {
+      const cats = {}; let total = 0;
+      list.filter(e => e.team === t).forEach(e => { const c = entryCost(e); cats[itemCat(e.itemVN)] = (cats[itemCat(e.itemVN)] || 0) + c; total += c; });
+      return { team:t, cats:cats, total:total };
+    }).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
+    if(!rows.length) return emptyHtml();
+    let html = '<div class="stk-legend">' + CATS.map(c => `<span><i class="dot" style="background:${c.color}"></i>${escapeHtml(c.name)}</span>`).join('') + '</div>';
+    rows.forEach(r => {
+      const segs = CATS.filter(c => r.cats[c.key] > 0).map(c => {
+        const p = r.cats[c.key] / r.total * 100;
+        return `<div style="width:${p}%;background:${c.color}" title="${attr(r.team + ' - ' + c.name + ': ' + fmtNum(r.cats[c.key]) + ' VND (' + p.toFixed(1) + '%)')}">${p >= 9 ? Math.round(p) + '%' : ''}</div>`;
+      }).join('');
+      html += `<div class="stk-row"><div class="nm" title="${attr(r.team)}">${escapeHtml(r.team)}</div><div class="stk-bar">${segs}</div><div class="tot">${compact(r.total)}</div></div>`;
+    });
+    return html;
+  }
+
+  function renderSummaryCharts(){
+    const y = sumEls.y1.value, m = sumEls.m1.value;
+    const list = entries.filter(e => periodMatch(e, y, m));
+    const total = list.reduce((s, e) => s + entryCost(e), 0);
+    document.getElementById('sumPeriodNote').textContent = periodText(y, m) + ' · Total: ' + fmtNum(total) + ' VND';
+    document.getElementById('chartBar').innerHTML = renderBarChart(list);
+    document.getElementById('chartPie').innerHTML = renderPieChart(list);
+    document.getElementById('chartStack').innerHTML = renderStackChart(list);
+  }
+
+  function renderItemChart(){
+    const y = sumEls.y2.value, m = sumEls.m2.value, t = sumEls.t2.value;
+    const agg = new Map();
+    entries.filter(e => periodMatch(e, y, m) && (!t || e.team === t)).forEach(e => {
+      const a = agg.get(e.itemVN) || { vn:e.itemVN, qty:0, cost:0 };
+      a.qty += e.qty; a.cost += entryCost(e); agg.set(e.itemVN, a);
+    });
+    const rows = Array.from(agg.values()).sort((a, b) => b.cost - a.cost);
+    const total = rows.reduce((s, r) => s + r.cost, 0);
+    document.getElementById('itemsNote').textContent = periodText(y, m) + ' · ' + (t || 'All teams') + ' · ' + rows.length + ' items · Total: ' + fmtNum(total) + ' VND';
+    const box = document.getElementById('chartItems');
+    if(!rows.length){ box.innerHTML = emptyHtml(); return; }
+    const max = rows[0].cost || 1;
+    box.innerHTML = '<div class="items-scroll">' + rows.map(r => {
+      const it = ITEM_MAP[r.vn] || { en:'', unit:'' };
+      return `<div class="it-row"><div><div>${escapeHtml(r.vn)}</div><div class="en">${escapeHtml(it.en)}</div></div>` +
+        `<div class="it-bar"><div style="width:${Math.max(r.cost / max * 100, 0.5)}%"></div></div>` +
+        `<div class="it-val"><b>${fmtNum(r.cost)}</b><br><span class="en">${fmtNum(r.qty)} ${escapeHtml(it.unit)}</span></div></div>`;
+    }).join('') + '</div>';
+  }
+
+  [sumEls.y1, sumEls.m1].forEach(el => el.addEventListener('change', renderSummaryCharts));
+  [sumEls.y2, sumEls.m2, sumEls.t2].forEach(el => el.addEventListener('change', renderItemChart));
+  tabButtons.forEach(btn => {
+    if(btn.dataset.tab === 'summary') btn.addEventListener('click', () => { refreshSummaryOptions(); renderSummaryCharts(); renderItemChart(); });
+  });
+
+  // Init: show the last copy kept in this browser at once, then load the latest from the Google Sheet
+  loadLocal();
+  try{ setCatalog(JSON.parse(localStorage.getItem(CATALOG_KEY) || '[]')); }catch(e){ setCatalog([]); }
+  yearEl.value = new Date().getFullYear();
+  resetItemFields();
+  initialPeriod();
+  renderEntryList();
+  setSync(apiConfigured() ? 'loading' : 'noapi');
+  (async function boot(){
+    const localEntries = entries.map(e => Object.assign({}, e));     // saved in this browser before the sheet was used
+    if(!(await loadRemote(false))) return;
+    try{
+      if(!localStorage.getItem(SEEN_KEY)){
+        localStorage.setItem(SEEN_KEY, '1');
+        if(!entries.length && localEntries.length){
+          openConfirm(`Upload ${localEntries.length} entries saved in this browser to Google Sheet? (No = discard them)`, () => {
+            const ops = [];
+            localEntries.forEach(e => {
+              const r = upsertEntry({ year: e.year, month: e.month, team: e.team, itemVN: canonVN(e.itemVN), qty: e.qty });
+              ops.push(opOf('set', r.entry));
+            });
+            saveLocal(); queueOps(ops); renderEntryList();
+          });
+        }
+      }
+    }catch(e){}
+  })();
+</script>
+
+</body>
+</html>
