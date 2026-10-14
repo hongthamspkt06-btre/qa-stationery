@@ -119,6 +119,12 @@
     font-size:13px; font-weight:700; padding:0 18px; cursor:pointer; flex:none;
   }
   .btn-add:hover{ background:#2E68C4; }
+  .entry-actions{ display:flex; align-items:center; gap:8px; flex:none; }
+  .btn-copyprev{
+    height:9.4mm; background:var(--white); color:var(--navy); border:1px solid var(--navy); border-radius:8px;
+    font-size:13px; font-weight:700; padding:0 16px; cursor:pointer; flex:none; white-space:nowrap;
+  }
+  .btn-copyprev:hover{ background:#DCE9F8; }
   .entry-list-empty{ font-size:12px; color:var(--text-muted); padding:8px 0; }
 
   /* Entry List: grows with data, capped at ~3x the Entry block height (set by JS) */
@@ -304,7 +310,10 @@
             <button class="revising-cancel" id="revisingCancel" type="button">Cancel</button>
           </span>
         </div>
-        <button class="btn-add" id="addEntryBtn" type="button">+ Add</button>
+        <div class="entry-actions">
+          <button class="btn-copyprev" id="copyPrevBtn" type="button">Copy Previous Data</button>
+          <button class="btn-add" id="addEntryBtn" type="button">+ Add</button>
+        </div>
       </div>
 
       <div class="field-grid">
@@ -1010,6 +1019,38 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     renderEntryList();
     resetItemFields();
     if(msg) showToast(msg);
+  });
+
+  // ---- Copy Previous Data: copy every entry of the previous month into the month chosen in Entry ----
+  document.getElementById('copyPrevBtn').addEventListener('click', () => {
+    const year = yearEl.value.trim();
+    if(!/^\d{4}$/.test(year)){ showToast('Please enter: Year (4 digits)', true); yearEl.focus(); return; }
+    if(!monthEl.value){ showToast('Please enter: Month', true); monthEl.focus(); return; }
+    const mi = MONTHS.indexOf(monthEl.value);
+    const toYear = Number(year), toMonth = monthEl.value;
+    const fromYear = mi === 0 ? toYear - 1 : toYear;
+    const fromMonth = MONTHS[(mi + 11) % 12];
+    const source = entries.filter(e => e.year === fromYear && e.month === fromMonth);
+    if(!source.length){ showToast('No data in ' + fromMonth + ' ' + fromYear + ' to copy.', true); return; }
+    const existing = entries.filter(e => e.year === toYear && e.month === toMonth).length;
+    const msg = 'Copy ' + source.length + ' entries from ' + fromMonth + ' ' + fromYear + ' to ' + toMonth + ' ' + toYear + '?' +
+      (existing ? ' (' + existing + ' existing entries in ' + toMonth + ' will be kept; matching items are overwritten)' : '');
+    openConfirm(msg, () => {
+      if(editingId !== null){ exitReviseMode(); resetItemFields(); }
+      const ops = [];
+      source.forEach(src => {
+        const target = { year: toYear, month: toMonth, team: src.team, itemVN: src.itemVN, qty: src.qty };
+        const found = entries.find(e => sameKey(e, target));
+        if(found){ found.qty = target.qty; ops.push(opOf('set', found)); }
+        else { const r = upsertEntry(target); ops.push(opOf('set', r.entry)); }
+      });
+      lastPeriod = { year: toYear, month: toMonth };
+      saveLocal();
+      queueOps(ops);
+      setPeriod(toYear, toMonth);
+      renderEntryList();
+      showToast('Copied ' + source.length + ' entries from ' + fromMonth + ' ' + fromYear);
+    });
   });
 
   // ---- Export Excel: builds a real .xlsx in the browser (no library), layout like sheet "order" ----
