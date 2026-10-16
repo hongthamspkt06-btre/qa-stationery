@@ -232,9 +232,12 @@
   .dot{ width:10px; height:10px; border-radius:2px; display:inline-block; }
   .stk-legend{ display:flex; flex-wrap:wrap; gap:4px 14px; font-size:11px; margin-bottom:8px; }
   .stk-legend span{ display:inline-flex; align-items:center; gap:5px; }
-  .stk-row{ display:grid; grid-template-columns:78px minmax(0,1fr) 62px; gap:8px; align-items:center; margin:4px 0; font-size:11px; }
+  .stk-row{ display:grid; grid-template-columns:78px minmax(0,1fr) 62px; gap:8px; align-items:center; margin:9px 0; font-size:11px; }
   .stk-row .nm{ font-weight:600; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .stk-row .tot{ font-weight:700; color:var(--navy); text-align:right; font-variant-numeric:tabular-nums; }
+  .stk-row.stk-total{ padding-bottom:7px; margin-bottom:7px; border-bottom:1px solid var(--border); }
+  .stk-row.stk-total .nm{ color:var(--navy); font-weight:700; }
+  .stk-row.stk-total .stk-bar{ height:24px; }
   .stk-bar{ display:flex; height:20px; border-radius:3px; overflow:hidden; background:#EEF0F2; }
   .stk-bar .stk-seg{ height:100%; flex:0 1 auto; min-width:1px; cursor:pointer; box-shadow:inset -1px 0 0 rgba(255,255,255,0.55); }
   .stk-bar .stk-seg:hover{ filter:brightness(1.18) saturate(1.1); }
@@ -245,7 +248,7 @@
   .stk-tip .t-en{ font-size:11px; color:var(--text-muted); margin-bottom:4px; }
   .stk-tip .t-row{ display:flex; justify-content:space-between; gap:16px; }
   .items-scroll{ max-height:460px; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:4px 8px; }
-  .it-row{ display:grid; grid-template-columns:minmax(150px,300px) minmax(0,1fr) 100px; gap:10px; align-items:center; padding:4px 0; border-bottom:1px solid #EEF0F2; font-size:12px; }
+  .it-row{ display:grid; grid-template-columns:minmax(150px,300px) minmax(0,1fr) 100px; gap:10px; align-items:center; padding:4px 0; border-bottom:1px dashed #D3D8DE; font-size:12px; }
   .it-row:last-child{ border-bottom:none; }
   .it-row .en{ font-size:10px; color:var(--text-muted); }
   .it-bar{ height:16px; display:flex; align-items:center; gap:6px; min-width:0; }
@@ -1503,9 +1506,9 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
   }
   function renderStackChart(list){
     const order = new Map(ITEMS.map((x, i) => [x.vn, i]));
-    const rows = TEAMS.map(t => {
+    const build = (t, src) => {
       const agg = new Map(); let total = 0;
-      list.filter(e => e.team === t).forEach(e => {
+      src.forEach(e => {
         const c = entryCost(e);
         const a = agg.get(e.itemVN) || { vn:e.itemVN, qty:0, cost:0 };
         a.qty += e.qty; a.cost += c; agg.set(e.itemVN, a); total += c;
@@ -1513,8 +1516,11 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       const items = Array.from(agg.values()).filter(a => a.cost > 0)
         .sort((a, b) => (order.has(a.vn) ? order.get(a.vn) : 1e9) - (order.has(b.vn) ? order.get(b.vn) : 1e9));
       return { team:t, items:items, total:total };
-    }).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
+    };
+    const rows = TEAMS.map(t => build(t, list.filter(e => e.team === t))).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
     if(!rows.length) return emptyHtml();
+    rows.unshift(build('Total', list));          // first bar = all teams together
+    rows[0].isTotal = true;
     let html = '';
     rows.forEach(r => {
       const segs = r.items.map(a => {
@@ -1522,7 +1528,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
         return `<div class="stk-seg" style="width:${a.cost / r.total * 100}%;background:${itemColor(a.vn)}" ` +
           `data-vn="${attr(a.vn)}" data-en="${attr(it.en)}" data-qty="${a.qty}" data-amt="${a.cost}"></div>`;
       }).join('');
-      html += `<div class="stk-row"><div class="nm" title="${attr(r.team)}">${escapeHtml(r.team)}</div><div class="stk-bar">${segs}</div><div class="tot">${compact(r.total)}</div></div>`;
+      html += `<div class="stk-row${r.isTotal ? ' stk-total' : ''}"><div class="nm" title="${attr(r.team)}">${escapeHtml(r.team)}</div><div class="stk-bar">${segs}</div><div class="tot">${compact(r.total)}</div></div>`;
     });
     return html;
   }
