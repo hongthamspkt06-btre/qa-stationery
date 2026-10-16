@@ -772,15 +772,24 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       img.src = 'data:' + raw.mime + ';base64,' + raw.b64;
     });
   }
-  async function ensurePhotos(){
-    if(photosState.loaded && !photosState.force) return;
-    const j = await apiGet(photosState.force ? { action: 'photos', refresh: '1' } : { action: 'photos' });
-    const imgs = {};
-    await Promise.all(Object.keys(j.images).map(async k => { const p = await prepareImage(j.images[k]); if(p) imgs[k] = p; }));
-    PHOTO_IMGS = imgs;
-    PHOTO_OF = j.map;
-    photosState.loaded = true;
-    photosState.force = false;
+  let photosPromise = null;                     // one shared load: background prefetch and Export wait on the same request
+  function ensurePhotos(){
+    if(photosState.loaded && !photosState.force) return Promise.resolve();
+    if(photosPromise) return photosPromise;
+    photosPromise = (async () => {
+      const j = await apiGet(photosState.force ? { action: 'photos', refresh: '1' } : { action: 'photos' });
+      const imgs = {};
+      await Promise.all(Object.keys(j.images).map(async k => { const p = await prepareImage(j.images[k]); if(p) imgs[k] = p; }));
+      PHOTO_IMGS = imgs;
+      PHOTO_OF = j.map;
+      photosState.loaded = true;
+      photosState.force = false;
+    })().finally(() => { photosPromise = null; });
+    return photosPromise;
+  }
+  // Silent background prefetch: starts as soon as data is entered, so Export Excel finds the photos ready
+  function prefetchPhotos(){
+    if(apiConfigured() && !photosState.loaded && !photosPromise) ensurePhotos().catch(() => {});
   }
 
   // ---- Period filter (Year / Month) ----
@@ -1014,6 +1023,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     lastPeriod = { year: data.year, month: data.month };
     saveLocal();
     queueOps(ops);
+    prefetchPhotos();                            // load photos in the background for Export
     exitReviseMode();
     setPeriod(data.year, data.month);            // show the period just entered
     renderEntryList();
@@ -1047,6 +1057,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       lastPeriod = { year: toYear, month: toMonth };
       saveLocal();
       queueOps(ops);
+      prefetchPhotos();
       setPeriod(toYear, toMonth);
       renderEntryList();
       showToast('Copied ' + source.length + ' entries from ' + fromMonth + ' ' + fromYear);
@@ -1236,7 +1247,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     let photoError = '';
     try{
       if(apiConfigured()){
-        showToast('Preparing photos…');
+        if(!photosState.loaded) showToast('Preparing photos…');   // only shown if the background load has not finished
         try{ await ensurePhotos(); }catch(err){ photoError = err.message; }
       }else{
         photoError = 'API URL not set';
