@@ -1160,7 +1160,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       rows1 += `<row r="${r}" spans="1:13" s="29" customFormat="1" ht="55.5" customHeight="1">` +
         fml('A' + r, 'ROW()-12', i + 1, 31) + str('B' + r, x.it.vn, 32) + str('C' + r, x.it.en, 32) + str('D' + r, x.it.unit, 33) +
         num('E' + r, x.it.price, 34) + num('F' + r, x.total, 35) + fml('G' + r, `F${r}*E${r}`, amt, 36) +
-        str('H' + r, 'QA Stationery', 37) + str('I' + r, x.teams.join(', '), 33) + blank('J' + r, 33) + '</row>';
+        str('H' + r, 'QA Stationery', 37) + str('I' + r, x.teams.join(', '), 125) + blank('J' + r, 33) + '</row>';
     });
     sumAmt = r3(sumAmt);
     const vat = r3(sumAmt * 0.08), grand = r3(sumAmt + vat);
@@ -1172,7 +1172,15 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       .replace(/<c r="([A-Z]+)(\d+)"/g, (m, c, n) => `<c r="${c}${+n + d}"`);
     const merges1 = ['A2:J2', 'A3:J3', 'J4:J7', 'D7:E7', 'D8:E8', `I${18 + d}:J${18 + d}`, `I${22 + d}:J${22 + d}`,
       `A${14 + d}:F${14 + d}`, `H${14 + d}:J${14 + d}`, `A${15 + d}:F${15 + d}`, `H${15 + d}:J${15 + d}`, `A${16 + d}:F${16 + d}`, `H${16 + d}:J${16 + d}`];
-    const sheet1 = T.s1head.replace('<dimension ref="A1:M29"/>', `<dimension ref="A1:M${29 + d}"/>`) + rows1 + tail + '</sheetData>' +
+    // D8 = "In: month/year" chosen in the Year / Month dropdowns; I9 = date of export (dd/mm/yyyy)
+    const selY = searchYear.value.trim(), selM = searchMonth.value;
+    const inText = 'In: ' + (selM ? String(MONTHS.indexOf(selM) + 1).padStart(2, '0') + (selY ? '/' + selY : '') : (selY || 'All'));
+    const now = new Date();
+    const expDate = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+    const s1headFilled = T.s1head
+      .replace('<c r="D8" s="119" t="s"><v>5</v></c>', str('D8', inText, 119))
+      .replace('<c r="I9" s="23"/>', str('I9', expDate, 23));
+    const sheet1 = s1headFilled.replace('<dimension ref="A1:M29"/>', `<dimension ref="A1:M${29 + d}"/>`) + rows1 + tail + '</sheetData>' +
       `<mergeCells count="${merges1.length}">${merges1.map(m => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` + T.s1post;
 
     // Pictures (column J): each picture is scaled to the height of its row
@@ -1231,6 +1239,10 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       `<mergeCells count="2"><mergeCell ref="A1:V1"/><mergeCell ref="A${totalRow}:E${totalRow}"/></mergeCells>` + T.s2post;
 
     // ---------- Package ----------
+    // extra cell style 125 = style 33 with "shrink to fit" instead of wrap text (column I, many teams)
+    const stylesXml = T.styles
+      .replace('<cellXfs count="125">', '<cellXfs count="126">')
+      .replace('</cellXfs>', '<xf numFmtId="165" fontId="26" fillId="0" borderId="4" xfId="1" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" shrinkToFit="1"/></xf></cellXfs>');
     const XH = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
     const ctypes = XH + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/>' +
       '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="vml" ContentType="application/vnd.openxmlformats-officedocument.vmlDrawing"/>' +
@@ -1252,7 +1264,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       { name: '_rels/.rels', text: XH + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
       { name: 'xl/workbook.xml', text: workbook },
       { name: 'xl/_rels/workbook.xml.rels', text: XH + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${REL}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${REL}/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="${REL}/theme" Target="theme/theme1.xml"/><Relationship Id="rId4" Type="${REL}/styles" Target="styles.xml"/><Relationship Id="rId5" Type="${REL}/sharedStrings" Target="sharedStrings.xml"/></Relationships>` },
-      { name: 'xl/styles.xml', text: T.styles },
+      { name: 'xl/styles.xml', text: stylesXml },
       { name: 'xl/sharedStrings.xml', text: T.shared },
       { name: 'xl/theme/theme1.xml', text: T.theme },
       { name: 'xl/worksheets/sheet1.xml', text: sheet1 },
