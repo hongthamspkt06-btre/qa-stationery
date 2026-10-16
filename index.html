@@ -228,7 +228,7 @@
   .chart-empty{ font-size:12px; color:var(--text-muted); padding:24px 0; text-align:center; }
   .pie-wrap{ display:flex; justify-content:center; }
   .pie-wrap svg{ width:100%; max-width:480px; height:auto; display:block; }
-  .vat-total{ font-size:13px; font-weight:700; color:var(--navy); margin-left:14px; }
+  .vat-total{ font-size:12px; font-weight:600; color:var(--text-muted); margin-left:10px; }
   .dot{ width:10px; height:10px; border-radius:2px; display:inline-block; }
   .stk-legend{ display:flex; flex-wrap:wrap; gap:4px 14px; font-size:11px; margin-bottom:8px; }
   .stk-legend span{ display:inline-flex; align-items:center; gap:5px; }
@@ -381,7 +381,6 @@
       <div class="list-header">
         <div class="list-title-wrap">
           <div class="block-title">Cost by Team</div>
-          <span class="list-period" id="sumPeriodNote"></span>
         </div>
         <div class="list-search">
           <div class="search-item"><label for="sumYear">Year</label><select id="sumYear"></select></div>
@@ -1444,7 +1443,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const total = rows.reduce((s, r) => s + r.val, 0);
     if(!(total > 0)) return emptyHtml();
     // Full pie. Percent inside each slice (white), team name outside in the slice colour with a leader line.
-    const W = 460, H = 270, cx = W / 2, cy = H / 2, R = 96, GAP = 13;
+    const W = 460, H = 300, cx = W / 2, cy = H / 2, R = 96, GAP = 16, MINGAP = 19;
     const pt = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
     const f = n => Math.round(n * 100) / 100;
     let a0 = -Math.PI / 2, s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Portion by team">`;
@@ -1467,17 +1466,20 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       labels.push({ row:row, pct:pct, side:side, e1:e1, e2:e2, y:e2[1] });
       a0 = a1;
     });
-    // keep labels on the same side from overlapping (at least 14px apart)
+    // spread labels on each side so they never overlap (at least MINGAP px apart), keeping them inside the chart
     [1, -1].forEach(side => {
       const grp = labels.filter(l => l.side === side).sort((a, b) => a.y - b.y);
+      const TOP = 12, BOT = H - 10;
       for(let i = 0; i < grp.length; i++){
-        if(i > 0 && grp[i].y < grp[i - 1].y + 14) grp[i].y = grp[i - 1].y + 14;
-        grp[i].y = Math.min(Math.max(grp[i].y, 10), H - 8);
+        grp[i].y = Math.max(grp[i].y, i ? grp[i - 1].y + MINGAP : TOP);
       }
-      for(let i = grp.length - 2; i >= 0; i--){ if(grp[i].y > grp[i + 1].y - 14) grp[i].y = grp[i + 1].y - 14; }
+      if(grp.length && grp[grp.length - 1].y > BOT){
+        grp[grp.length - 1].y = BOT;
+        for(let i = grp.length - 2; i >= 0; i--) grp[i].y = Math.min(grp[i].y, grp[i + 1].y - MINGAP);
+      }
     });
     labels.forEach(l => {
-      const x3 = l.e2[0] + l.side * 14;
+      const x3 = l.e2[0] + l.side * 18;
       s += `<polyline points="${f(l.e1[0])},${f(l.e1[1])} ${f(l.e2[0])},${f(l.e2[1])} ${f(x3)},${f(l.y)}" fill="none" stroke="${l.row.color}" stroke-width="1"/>`;
       const txt = escapeHtml(l.row.team) + (l.pct < 2.5 ? ' ' + l.pct.toFixed(1) + '%' : '');
       s += `<text x="${f(x3 + l.side * 4)}" y="${f(l.y + 4)}" text-anchor="${l.side > 0 ? 'start' : 'end'}" font-size="12" fill="${l.row.color}">${txt}</text>`;
@@ -1511,9 +1513,6 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const curLabel = mC + ' ' + yC, prevLabel = mP + ' ' + yP;
     const curList = entries.filter(e => e.year === yC && e.month === mC);
     const prevList = entries.filter(e => e.year === yP && e.month === mP);
-    const sum = l => l.reduce((s, e) => s + entryCost(e), 0);
-    document.getElementById('sumPeriodNote').textContent =
-      'Total (included VAT): ' + prevLabel + ' ' + fmtVnd(sum(prevList)) + ' · ' + curLabel + ' ' + fmtVnd(sum(curList)) + ' VND';
     document.getElementById('chartBar').innerHTML = renderBarChart(curList, prevList, curLabel, prevLabel);
     document.getElementById('chartPie').innerHTML = renderPieChart(entries.filter(e => periodMatch(e, sumEls.y3.value, sumEls.m3.value)));
     document.getElementById('chartStack').innerHTML = renderStackChart(entries.filter(e => periodMatch(e, sumEls.y4.value, sumEls.m4.value)));
@@ -1535,8 +1534,8 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     box.innerHTML = '<div class="items-scroll">' + rows.map(r => {
       const it = ITEM_MAP[r.vn] || { en:'', unit:'' };
       return `<div class="it-row"><div><div>${escapeHtml(r.vn)}</div><div class="en">${escapeHtml(it.en)}</div></div>` +
-        `<div class="it-bar"><div class="fill" style="width:${Math.max(r.cost / max * 72, 0.5)}%"></div><span class="lbl">${fmtNum(r.qty)} ${escapeHtml(it.unit)}</span></div>` +
-        `<div class="it-val"><b>${fmtVnd(r.cost)}</b><span class="mqty"><br><span class="en">${fmtNum(r.qty)} ${escapeHtml(it.unit)}</span></span></div></div>`;
+        `<div class="it-bar"><div class="fill" style="width:${Math.max(r.cost / max * 72, 0.5)}%"></div><span class="lbl">${fmtNum(r.qty)}</span></div>` +
+        `<div class="it-val"><b>${fmtVnd(r.cost)}</b><span class="mqty"><br><span class="en">${fmtNum(r.qty)}</span></span></div></div>`;
     }).join('') + '</div>';
   }
 
