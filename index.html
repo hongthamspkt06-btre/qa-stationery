@@ -223,13 +223,12 @@
   .chart-svg{ width:100%; height:auto; display:block; }
   .chart-svg text{ font-family:inherit; fill:var(--text); }
   .chart-svg .ax{ fill:var(--text-muted); font-size:10px; }
-  .chart-svg .val{ font-size:10px; font-weight:700; fill:var(--navy); }
+  .chart-svg .val{ font-size:9px; font-weight:700; fill:var(--navy); }
+  .chart-svg .val-prev{ font-size:9px; font-weight:700; fill:#4B5563; }
   .chart-empty{ font-size:12px; color:var(--text-muted); padding:24px 0; text-align:center; }
-  .pie-wrap{ display:flex; flex-wrap:wrap; align-items:center; gap:16px; }
-  .pie-wrap svg{ width:240px; height:240px; flex:none; }
-  .pie-legend{ flex:1 1 200px; min-width:0; font-size:12px; }
-  .pie-legend .lg{ display:grid; grid-template-columns:12px minmax(0,1fr) 46px 88px; gap:6px; align-items:center; padding:2px 0; }
-  .pie-legend .lg .num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .pie-wrap{ display:flex; justify-content:center; }
+  .pie-wrap svg{ width:100%; max-width:480px; height:auto; display:block; }
+  .vat-total{ font-size:13px; font-weight:700; color:var(--navy); margin-left:14px; }
   .dot{ width:10px; height:10px; border-radius:2px; display:inline-block; }
   .stk-legend{ display:flex; flex-wrap:wrap; gap:4px 14px; font-size:11px; margin-bottom:8px; }
   .stk-legend span{ display:inline-flex; align-items:center; gap:5px; }
@@ -239,14 +238,16 @@
   .stk-bar{ display:flex; height:20px; border-radius:3px; overflow:hidden; background:#EEF0F2; }
   .stk-bar div{ height:100%; color:#fff; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap; }
   .items-scroll{ max-height:460px; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:4px 8px; }
-  .it-row{ display:grid; grid-template-columns:minmax(150px,300px) minmax(0,1fr) 190px; gap:10px; align-items:center; padding:4px 0; border-bottom:1px solid #EEF0F2; font-size:12px; }
+  .it-row{ display:grid; grid-template-columns:minmax(150px,300px) minmax(0,1fr) 100px; gap:10px; align-items:center; padding:4px 0; border-bottom:1px solid #EEF0F2; font-size:12px; }
   .it-row:last-child{ border-bottom:none; }
   .it-row .en{ font-size:10px; color:var(--text-muted); }
-  .it-bar{ height:14px; background:#EEF0F2; border-radius:3px; overflow:hidden; }
-  .it-bar div{ height:100%; background:var(--navy); border-radius:3px; }
+  .it-bar{ height:16px; display:flex; align-items:center; gap:6px; min-width:0; }
+  .it-bar .fill{ height:14px; background:var(--navy); border-radius:3px; flex:none; }
+  .it-bar .lbl{ font-size:11px; font-weight:700; color:var(--navy); white-space:nowrap; font-variant-numeric:tabular-nums; }
   .it-val{ text-align:right; font-variant-numeric:tabular-nums; }
   .it-val b{ color:var(--navy); }
-  @media (max-width:700px){ .it-row{ grid-template-columns:minmax(0,1fr) 120px; } .it-row .it-bar{ display:none; } }
+  .it-val .mqty{ display:none; }
+  @media (max-width:700px){ .it-row{ grid-template-columns:minmax(0,1fr) 120px; } .it-row .it-bar{ display:none; } .it-val .mqty{ display:inline; } }
 
   /* Toast */
   .toast{
@@ -359,7 +360,10 @@
 
     <div class="block" id="entry-list-block">
       <div class="list-header">
-        <div class="block-title">Entry List</div>
+        <div class="list-title-wrap">
+          <div class="block-title">Entry List</div>
+          <span class="vat-total" id="entryTotalNote"></span>
+        </div>
         <div class="list-search">
           <div class="search-item"><label for="searchYear">Year</label><input type="number" id="searchYear" placeholder="All"></div>
           <div class="search-item"><label for="searchMonth">Month</label><select id="searchMonth"></select></div>
@@ -376,12 +380,13 @@
     <div class="block">
       <div class="list-header">
         <div class="list-title-wrap">
-          <div class="block-title">Stationery Cost by Team (VND)</div>
+          <div class="block-title">Cost by Team</div>
           <span class="list-period" id="sumPeriodNote"></span>
         </div>
         <div class="list-search">
           <div class="search-item"><label for="sumYear">Year</label><select id="sumYear"></select></div>
-          <div class="search-item"><label for="sumMonth">Month</label><select id="sumMonth"></select></div>
+          <div class="search-item"><label for="sumPrevMonth">Previous Month</label><select id="sumPrevMonth"></select></div>
+          <div class="search-item"><label for="sumMonth">Current Month</label><select id="sumMonth"></select></div>
         </div>
       </div>
       <div id="chartBar"></div>
@@ -389,11 +394,11 @@
 
     <div class="sum-row">
       <div class="block">
-        <div class="block-title">Cost Share by Team</div>
+        <div class="list-title-wrap"><div class="block-title">Portion by Team</div><span class="list-period" id="pieNote"></span></div>
         <div id="chartPie"></div>
       </div>
       <div class="block">
-        <div class="block-title">Cost Structure by Team (by item group)</div>
+        <div class="list-title-wrap"><div class="block-title">Item by Team</div><span class="list-period" id="stackNote"></span></div>
         <div id="chartStack"></div>
       </div>
     </div>
@@ -846,6 +851,8 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
 
   function renderEntryList(){
     const shown = entries.filter(entryMatchesSearch);
+    document.getElementById('entryTotalNote').textContent =
+      'Total (included VAT): ' + fmtVnd(shown.reduce((s, e) => s + entryCost(e), 0)) + ' VND';
     if(entries.length === 0){
       entryListContainer.innerHTML = '<div class="entry-list-empty" id="entryListEmpty">No entries yet.</div>';
       return;
@@ -1317,7 +1324,10 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     if(/^pin /.test(n)) return 'batt';
     return 'other';
   }
-  function entryCost(e){ const it = ITEM_MAP[e.itemVN]; return it ? e.qty * it.price : 0; }
+  // Cost of an entry = qty x quotation price + 8% VAT (same rule as the Excel "purchase request" sheet)
+  const VAT_RATE = 0.08;
+  function entryCost(e){ const it = ITEM_MAP[e.itemVN]; return it ? e.qty * it.price * (1 + VAT_RATE) : 0; }
+  function fmtVnd(n){ return Math.round(Number(n) || 0).toLocaleString('en-US'); }
   function compact(n){
     if(n >= 1e6){ return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M'; }
     if(n >= 1e3){ return Math.round(n / 1e3) + 'k'; }
@@ -1329,10 +1339,19 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
   }
   function periodMatch(e, y, m){ return (!y || String(e.year) === y) && (!m || e.month === m); }
   const sumEls = {
-    y1: document.getElementById('sumYear'), m1: document.getElementById('sumMonth'),
+    y1: document.getElementById('sumYear'), pm: document.getElementById('sumPrevMonth'), m1: document.getElementById('sumMonth'),
     y2: document.getElementById('sumYear2'), m2: document.getElementById('sumMonth2'), t2: document.getElementById('sumTeam2')
   };
   let summaryReady = false;
+  let cmpTouched = false;                       // false until the user picks Year / Previous / Current Month by hand
+  // Default comparison: the latest month that has data (Current) and the calendar month right before it (Previous)
+  function defaultCompare(){
+    let best = null;
+    entries.forEach(e => { const k = e.year * 12 + MONTHS.indexOf(e.month); if(best === null || k > best) best = k; });
+    if(best === null){ const d = new Date(); best = d.getFullYear() * 12 + d.getMonth(); }
+    const mi = best % 12;
+    return { year: String(Math.floor(best / 12)), cur: MONTHS[mi], prev: MONTHS[(mi + 11) % 12] };
+  }
   function fillSel(sel, opts, wanted){
     sel.innerHTML = opts.map(o => `<option value="${attr(o.v)}">${escapeHtml(o.t)}</option>`).join('');
     sel.value = wanted;
@@ -1345,8 +1364,11 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const tOpts = [{ v:'', t:'All' }].concat(TEAMS.map(t => ({ v:t, t:t })));
     const first = !summaryReady;
     const dy = first ? searchYear.value : null, dm = first ? searchMonth.value : null;   // first time: same period as Entry List
-    fillSel(sumEls.y1, yOpts, first ? dy : sumEls.y1.value);
-    fillSel(sumEls.m1, mOpts, first ? dm : sumEls.m1.value);
+    const dc = defaultCompare();
+    const yOnly = yOpts.filter(o => o.v), mOnly = mOpts.filter(o => o.v);       // comparison needs a real year and months (no "All")
+    fillSel(sumEls.y1, yOnly, cmpTouched ? sumEls.y1.value : dc.year);
+    fillSel(sumEls.pm, mOnly, cmpTouched ? sumEls.pm.value : dc.prev);
+    fillSel(sumEls.m1, mOnly, cmpTouched ? sumEls.m1.value : dc.cur);
     fillSel(sumEls.y2, yOpts, first ? dy : sumEls.y2.value);
     fillSel(sumEls.m2, mOpts, first ? dm : sumEls.m2.value);
     fillSel(sumEls.t2, tOpts, first ? '' : sumEls.t2.value);
@@ -1355,26 +1377,38 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
   function periodText(y, m){ return (y || 'All years') + ' · ' + (m || 'All months'); }
   function emptyHtml(){ return '<div class="chart-empty">No data for this selection.</div>'; }
 
-  function renderBarChart(list){
-    const tot = TEAMS.map(t => list.filter(e => e.team === t).reduce((s, e) => s + entryCost(e), 0));
-    const max = Math.max.apply(null, tot);
+  // Clustered columns per team: Previous Month (dark grey) next to Current Month (team colour).
+  // Height is 75% of the old single-series chart (viewBox 1100x284 vs 900x310 at the same display width).
+  function renderBarChart(curList, prevList, curLabel, prevLabel){
+    const sumBy = (list, t) => list.filter(e => e.team === t).reduce((s, e) => s + entryCost(e), 0);
+    const cur = TEAMS.map(t => sumBy(curList, t)), prev = TEAMS.map(t => sumBy(prevList, t));
+    const max = Math.max.apply(null, cur.concat(prev));
     if(!(max > 0)) return emptyHtml();
-    const nm = niceMax(max), W = 900, H = 310, L = 52, R = 10, T = 22, B = 46;
-    const pw = W - L - R, ph = H - T - B, bw = pw / TEAMS.length;
-    let s = `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Total cost by team">`;
+    const PREV_COLOR = '#4B5563';
+    const nm = niceMax(max), W = 1100, H = 284, L = 52, R = 10, T = 22, B = 46;
+    const pw = W - L - R, ph = H - T - B, bw = pw / TEAMS.length, barW = bw * 0.36, gap = 2;
+    let s = '<div class="stk-legend">' +
+      `<span><i class="dot" style="background:${PREV_COLOR}"></i>${escapeHtml(prevLabel)} (Previous)</span>` +
+      `<span><i class="dot" style="background:linear-gradient(90deg,#1B3A63,#1E8E5A,#3B7DDE)"></i>${escapeHtml(curLabel)} (Current)</span></div>`;
+    s += `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cost by team, previous month vs current month">`;
     for(let i = 0; i <= 4; i++){
       const y = T + ph - ph * i / 4;
       s += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="#E3E6EA" stroke-width="1"/>`;
       s += `<text class="ax" x="${L - 6}" y="${y + 3}" text-anchor="end">${compact(nm * i / 4)}</text>`;
     }
     TEAMS.forEach((t, i) => {
-      const h = ph * tot[i] / nm, x = L + i * bw + bw * 0.18, w = bw * 0.64, y = T + ph - h, cx = L + i * bw + bw / 2;
-      if(tot[i] > 0){
-        s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${TEAM_COLORS[i]}"><title>${escapeHtml(t)}: ${fmtNum(tot[i])} VND</title></rect>`;
-        s += `<text class="val" x="${cx}" y="${y - 4}" text-anchor="middle">${compact(tot[i])}</text>`;
-      }
-      const parts = t.split(' '), a = parts[0], b = parts.slice(1).join(' ');
-      s += `<text class="ax" x="${cx}" y="${T + ph + 14}" text-anchor="middle">${escapeHtml(a)}${b ? `<tspan x="${cx}" dy="12">${escapeHtml(b)}</tspan>` : ''}</text>`;
+      const cx = L + i * bw + bw / 2;
+      [
+        { v: prev[i], x: cx - gap / 2 - barW, color: PREV_COLOR, cls: 'val-prev', lab: prevLabel },
+        { v: cur[i],  x: cx + gap / 2,        color: TEAM_COLORS[i], cls: 'val', lab: curLabel }
+      ].forEach(b => {
+        if(!(b.v > 0)) return;
+        const h = ph * b.v / nm, y = T + ph - h;
+        s += `<rect x="${b.x}" y="${y}" width="${barW}" height="${h}" rx="2" fill="${b.color}"><title>${escapeHtml(t)} · ${escapeHtml(b.lab)}: ${fmtVnd(b.v)} VND (incl. VAT)</title></rect>`;
+        s += `<text class="${b.cls}" x="${b.x + barW / 2}" y="${y - 4}" text-anchor="middle">${compact(b.v)}</text>`;
+      });
+      const parts = t.split(' '), a = parts[0], b2 = parts.slice(1).join(' ');
+      s += `<text class="ax" x="${cx}" y="${T + ph + 14}" text-anchor="middle">${escapeHtml(a)}${b2 ? `<tspan x="${cx}" dy="12">${escapeHtml(b2)}</tspan>` : ''}</text>`;
     });
     return s + '</svg>';
   }
@@ -1384,26 +1418,46 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       .filter(r => r.val > 0).sort((a, b) => b.val - a.val);
     const total = rows.reduce((s, r) => s + r.val, 0);
     if(!(total > 0)) return emptyHtml();
-    const cx = 120, cy = 120, R = 112, r = 62;
+    // Full pie. Percent inside each slice (white), team name outside in the slice colour with a leader line.
+    const W = 460, H = 270, cx = W / 2, cy = H / 2, R = 96, GAP = 13;
     const pt = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
-    let a0 = -Math.PI / 2, s = '<svg viewBox="0 0 240 240" role="img" aria-label="Cost share by team">';
+    const f = n => Math.round(n * 100) / 100;
+    let a0 = -Math.PI / 2, s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Portion by team">`;
+    const labels = [];
     rows.forEach(row => {
-      const span = row.val / total * Math.PI * 2, a1 = a0 + span;
-      const tip = `<title>${escapeHtml(row.team)}: ${fmtNum(row.val)} VND (${(row.val / total * 100).toFixed(1)}%)</title>`;
+      const span = row.val / total * Math.PI * 2, a1 = a0 + span, am = (a0 + a1) / 2;
+      const pct = row.val / total * 100;
+      const tip = `<title>${escapeHtml(row.team)}: ${fmtVnd(row.val)} VND incl. VAT (${pct.toFixed(1)}%)</title>`;
       if(span >= Math.PI * 2 - 1e-6){
-        s += `<circle cx="${cx}" cy="${cy}" r="${(R + r) / 2}" fill="none" stroke="${row.color}" stroke-width="${R - r}">${tip}</circle>`;
+        s += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${row.color}">${tip}</circle>`;
       } else {
-        const p0 = pt(R, a0), p1 = pt(R, a1), p2 = pt(r, a1), p3 = pt(r, a0), large = span > Math.PI ? 1 : 0;
-        s += `<path d="M${p0[0]} ${p0[1]} A${R} ${R} 0 ${large} 1 ${p1[0]} ${p1[1]} L${p2[0]} ${p2[1]} A${r} ${r} 0 ${large} 0 ${p3[0]} ${p3[1]} Z" fill="${row.color}" stroke="#fff" stroke-width="1.5">${tip}</path>`;
+        const p0 = pt(R, a0), p1 = pt(R, a1), large = span > Math.PI ? 1 : 0;
+        s += `<path d="M${cx} ${cy} L${f(p0[0])} ${f(p0[1])} A${R} ${R} 0 ${large} 1 ${f(p1[0])} ${f(p1[1])} Z" fill="${row.color}" stroke="#fff" stroke-width="1.5">${tip}</path>`;
       }
+      if(pct >= 2.5){
+        const ip = pt(R * (pct < 8 ? 0.78 : 0.62), am);
+        s += `<text x="${f(ip[0])}" y="${f(ip[1] + 4)}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" pointer-events="none">${pct.toFixed(1)}%</text>`;
+      }
+      const side = Math.cos(am) >= 0 ? 1 : -1, e1 = pt(R, am), e2 = pt(R + GAP, am);
+      labels.push({ row:row, pct:pct, side:side, e1:e1, e2:e2, y:e2[1] });
       a0 = a1;
     });
-    s += `<text x="${cx}" y="${cy - 2}" text-anchor="middle" font-size="16" font-weight="700" fill="#1B3A63">${compact(total)}</text>`;
-    s += `<text x="${cx}" y="${cy + 14}" text-anchor="middle" font-size="10" fill="#5C6670">VND total</text></svg>`;
-    const legend = rows.map(row =>
-      `<div class="lg"><span class="dot" style="background:${row.color}"></span><span>${escapeHtml(row.team)}</span>` +
-      `<span class="num"><b>${(row.val / total * 100).toFixed(1)}%</b></span><span class="num">${fmtNum(row.val)}</span></div>`).join('');
-    return `<div class="pie-wrap">${s}<div class="pie-legend">${legend}</div></div>`;
+    // keep labels on the same side from overlapping (at least 14px apart)
+    [1, -1].forEach(side => {
+      const grp = labels.filter(l => l.side === side).sort((a, b) => a.y - b.y);
+      for(let i = 0; i < grp.length; i++){
+        if(i > 0 && grp[i].y < grp[i - 1].y + 14) grp[i].y = grp[i - 1].y + 14;
+        grp[i].y = Math.min(Math.max(grp[i].y, 10), H - 8);
+      }
+      for(let i = grp.length - 2; i >= 0; i--){ if(grp[i].y > grp[i + 1].y - 14) grp[i].y = grp[i + 1].y - 14; }
+    });
+    labels.forEach(l => {
+      const x3 = l.e2[0] + l.side * 14;
+      s += `<polyline points="${f(l.e1[0])},${f(l.e1[1])} ${f(l.e2[0])},${f(l.e2[1])} ${f(x3)},${f(l.y)}" fill="none" stroke="${l.row.color}" stroke-width="1"/>`;
+      const txt = escapeHtml(l.row.team) + (l.pct < 2.5 ? ' ' + l.pct.toFixed(1) + '%' : '');
+      s += `<text x="${f(x3 + l.side * 4)}" y="${f(l.y + 4)}" text-anchor="${l.side > 0 ? 'start' : 'end'}" font-size="12" fill="${l.row.color}">${txt}</text>`;
+    });
+    return `<div class="pie-wrap">${s}</svg></div>`;
   }
 
   function renderStackChart(list){
@@ -1417,7 +1471,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     rows.forEach(r => {
       const segs = CATS.filter(c => r.cats[c.key] > 0).map(c => {
         const p = r.cats[c.key] / r.total * 100;
-        return `<div style="width:${p}%;background:${c.color}" title="${attr(r.team + ' - ' + c.name + ': ' + fmtNum(r.cats[c.key]) + ' VND (' + p.toFixed(1) + '%)')}">${p >= 9 ? Math.round(p) + '%' : ''}</div>`;
+        return `<div style="width:${p}%;background:${c.color}" title="${attr(r.team + ' - ' + c.name + ': ' + fmtVnd(r.cats[c.key]) + ' VND incl. VAT (' + p.toFixed(1) + '%)')}">${p >= 9 ? Math.round(p) + '%' : ''}</div>`;
       }).join('');
       html += `<div class="stk-row"><div class="nm" title="${attr(r.team)}">${escapeHtml(r.team)}</div><div class="stk-bar">${segs}</div><div class="tot">${compact(r.total)}</div></div>`;
     });
@@ -1425,13 +1479,21 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
   }
 
   function renderSummaryCharts(){
-    const y = sumEls.y1.value, m = sumEls.m1.value;
-    const list = entries.filter(e => periodMatch(e, y, m));
-    const total = list.reduce((s, e) => s + entryCost(e), 0);
-    document.getElementById('sumPeriodNote').textContent = 'Total: ' + fmtNum(total) + ' VND';
-    document.getElementById('chartBar').innerHTML = renderBarChart(list);
-    document.getElementById('chartPie').innerHTML = renderPieChart(list);
-    document.getElementById('chartStack').innerHTML = renderStackChart(list);
+    // Year applies to Current Month. A Previous Month that is the same as or later in the calendar than
+    // Current Month belongs to the year before (e.g. Current = Jan, Previous = Dec -> Dec of last year).
+    const yC = Number(sumEls.y1.value), mC = sumEls.m1.value, mP = sumEls.pm.value;
+    const yP = MONTHS.indexOf(mP) >= MONTHS.indexOf(mC) ? yC - 1 : yC;
+    const curLabel = mC + ' ' + yC, prevLabel = mP + ' ' + yP;
+    const curList = entries.filter(e => e.year === yC && e.month === mC);
+    const prevList = entries.filter(e => e.year === yP && e.month === mP);
+    const sum = l => l.reduce((s, e) => s + entryCost(e), 0);
+    document.getElementById('sumPeriodNote').textContent =
+      'Total (included VAT): ' + prevLabel + ' ' + fmtVnd(sum(prevList)) + ' · ' + curLabel + ' ' + fmtVnd(sum(curList)) + ' VND';
+    document.getElementById('pieNote').textContent = curLabel;
+    document.getElementById('stackNote').textContent = curLabel;
+    document.getElementById('chartBar').innerHTML = renderBarChart(curList, prevList, curLabel, prevLabel);
+    document.getElementById('chartPie').innerHTML = renderPieChart(curList);        // Portion / Item by Team follow Current Month
+    document.getElementById('chartStack').innerHTML = renderStackChart(curList);
   }
 
   function renderItemChart(){
@@ -1443,19 +1505,19 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     });
     const rows = Array.from(agg.values()).sort((a, b) => b.cost - a.cost);
     const total = rows.reduce((s, r) => s + r.cost, 0);
-    document.getElementById('itemsNote').textContent = 'Total: ' + fmtNum(total) + ' VND';
+    document.getElementById('itemsNote').textContent = 'Total (included VAT): ' + fmtVnd(total) + ' VND';
     const box = document.getElementById('chartItems');
     if(!rows.length){ box.innerHTML = emptyHtml(); return; }
     const max = rows[0].cost || 1;
     box.innerHTML = '<div class="items-scroll">' + rows.map(r => {
       const it = ITEM_MAP[r.vn] || { en:'', unit:'' };
       return `<div class="it-row"><div><div>${escapeHtml(r.vn)}</div><div class="en">${escapeHtml(it.en)}</div></div>` +
-        `<div class="it-bar"><div style="width:${Math.max(r.cost / max * 100, 0.5)}%"></div></div>` +
-        `<div class="it-val"><b>${fmtNum(r.cost)}</b><br><span class="en">${fmtNum(r.qty)} ${escapeHtml(it.unit)}</span></div></div>`;
+        `<div class="it-bar"><div class="fill" style="width:${Math.max(r.cost / max * 72, 0.5)}%"></div><span class="lbl">${fmtNum(r.qty)} ${escapeHtml(it.unit)}</span></div>` +
+        `<div class="it-val"><b>${fmtVnd(r.cost)}</b><span class="mqty"><br><span class="en">${fmtNum(r.qty)} ${escapeHtml(it.unit)}</span></span></div></div>`;
     }).join('') + '</div>';
   }
 
-  [sumEls.y1, sumEls.m1].forEach(el => el.addEventListener('change', renderSummaryCharts));
+  [sumEls.y1, sumEls.pm, sumEls.m1].forEach(el => el.addEventListener('change', () => { cmpTouched = true; renderSummaryCharts(); }));
   [sumEls.y2, sumEls.m2, sumEls.t2].forEach(el => el.addEventListener('change', renderItemChart));
   tabButtons.forEach(btn => {
     if(btn.dataset.tab === 'summary') btn.addEventListener('click', () => { refreshSummaryOptions(); renderSummaryCharts(); renderItemChart(); });
