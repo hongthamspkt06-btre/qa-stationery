@@ -24,6 +24,10 @@
   body *{ font-family:inherit; }
   .page{ padding:4.76mm; max-width:1221.6px; margin:0 auto; }
 
+  /* Frozen top: header + tabs stay visible while scrolling */
+  .sticky-top{ position:sticky; top:0; z-index:55; background:var(--bg); margin:-4.76mm -4.76mm 0; padding:4.76mm 4.76mm 0; }
+  .sticky-top .tabs{ padding-bottom:0; }
+
   /* Header */
   .header-bar{
     height:15mm; background:var(--navy); border-radius:4px;
@@ -291,6 +295,7 @@
 
 <div class="page">
 
+  <div class="sticky-top">
   <!-- Header -->
   <div class="header-bar">
     <div class="header-title">QA Stationery Purchase</div>
@@ -308,6 +313,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="purchase" type="button">Purchase</button>
     <button class="tab-btn" data-tab="summary" type="button">Summary</button>
+  </div>
   </div>
 
   <!-- Purchase tab -->
