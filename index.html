@@ -394,11 +394,23 @@
 
     <div class="sum-row">
       <div class="block">
-        <div class="list-title-wrap"><div class="block-title">Portion by Team</div><span class="list-period" id="pieNote"></span></div>
+        <div class="list-header">
+          <div class="block-title">Portion by Team</div>
+          <div class="list-search">
+            <div class="search-item"><label for="pieYear">Year</label><select id="pieYear"></select></div>
+            <div class="search-item"><label for="pieMonth">Month</label><select id="pieMonth"></select></div>
+          </div>
+        </div>
         <div id="chartPie"></div>
       </div>
       <div class="block">
-        <div class="list-title-wrap"><div class="block-title">Item by Team</div><span class="list-period" id="stackNote"></span></div>
+        <div class="list-header">
+          <div class="block-title">Item by Team</div>
+          <div class="list-search">
+            <div class="search-item"><label for="stkYear">Year</label><select id="stkYear"></select></div>
+            <div class="search-item"><label for="stkMonth">Month</label><select id="stkMonth"></select></div>
+          </div>
+        </div>
         <div id="chartStack"></div>
       </div>
     </div>
@@ -1289,11 +1301,16 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     entryListBlockEl.style.setProperty('--entry-list-max', Math.max(220, window.innerHeight - r.top - bottomGap) + 'px');
   }
   // Year / Month filter boxes in Entry List = same width as Year / Month boxes in Entry
+  let dropW = 0;                                           // last measured width of the Month dropdown in Entry
   function syncSearchWidths(){
     const wy = yearEl.getBoundingClientRect().width, wm = monthEl.getBoundingClientRect().width;
-    if(!wy || !wm) return;                                 // tab hidden
-    searchYear.style.width = wy + 'px';
-    searchMonth.style.width = wm + 'px';
+    if(wy && wm){                                          // Purchase tab visible: measure
+      dropW = wm;
+      searchYear.style.width = wy + 'px';
+      searchMonth.style.width = wm + 'px';
+    }
+    // every dropdown in the Summary tab = same width as the Year / Month dropdowns in Entry
+    if(dropW) document.querySelectorAll('#tab-summary .search-item select').forEach(sel => { sel.style.width = dropW + 'px'; });
   }
   function updateLayout(){ updateEntryListMaxHeight(); syncSearchWidths(); }
   updateLayout();
@@ -1340,10 +1357,13 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
   function periodMatch(e, y, m){ return (!y || String(e.year) === y) && (!m || e.month === m); }
   const sumEls = {
     y1: document.getElementById('sumYear'), pm: document.getElementById('sumPrevMonth'), m1: document.getElementById('sumMonth'),
+    y3: document.getElementById('pieYear'), m3: document.getElementById('pieMonth'),
+    y4: document.getElementById('stkYear'), m4: document.getElementById('stkMonth'),
     y2: document.getElementById('sumYear2'), m2: document.getElementById('sumMonth2'), t2: document.getElementById('sumTeam2')
   };
   let summaryReady = false;
   let cmpTouched = false;                       // false until the user picks Year / Previous / Current Month by hand
+  let pieTouched = false, stkTouched = false;   // same for the Year / Month of Portion by Team and Item by Team
   // Default comparison: the latest month that has data (Current) and the calendar month right before it (Previous)
   function defaultCompare(){
     let best = null;
@@ -1369,6 +1389,11 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     fillSel(sumEls.y1, yOnly, cmpTouched ? sumEls.y1.value : dc.year);
     fillSel(sumEls.pm, mOnly, cmpTouched ? sumEls.pm.value : dc.prev);
     fillSel(sumEls.m1, mOnly, cmpTouched ? sumEls.m1.value : dc.cur);
+    // Portion by Team / Item by Team: own Year + Month (default = latest month with data; "All" is allowed)
+    fillSel(sumEls.y3, yOpts, pieTouched ? sumEls.y3.value : dc.year);
+    fillSel(sumEls.m3, mOpts, pieTouched ? sumEls.m3.value : dc.cur);
+    fillSel(sumEls.y4, yOpts, stkTouched ? sumEls.y4.value : dc.year);
+    fillSel(sumEls.m4, mOpts, stkTouched ? sumEls.m4.value : dc.cur);
     fillSel(sumEls.y2, yOpts, first ? dy : sumEls.y2.value);
     fillSel(sumEls.m2, mOpts, first ? dm : sumEls.m2.value);
     fillSel(sumEls.t2, tOpts, first ? '' : sumEls.t2.value);
@@ -1489,11 +1514,9 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const sum = l => l.reduce((s, e) => s + entryCost(e), 0);
     document.getElementById('sumPeriodNote').textContent =
       'Total (included VAT): ' + prevLabel + ' ' + fmtVnd(sum(prevList)) + ' · ' + curLabel + ' ' + fmtVnd(sum(curList)) + ' VND';
-    document.getElementById('pieNote').textContent = curLabel;
-    document.getElementById('stackNote').textContent = curLabel;
     document.getElementById('chartBar').innerHTML = renderBarChart(curList, prevList, curLabel, prevLabel);
-    document.getElementById('chartPie').innerHTML = renderPieChart(curList);        // Portion / Item by Team follow Current Month
-    document.getElementById('chartStack').innerHTML = renderStackChart(curList);
+    document.getElementById('chartPie').innerHTML = renderPieChart(entries.filter(e => periodMatch(e, sumEls.y3.value, sumEls.m3.value)));
+    document.getElementById('chartStack').innerHTML = renderStackChart(entries.filter(e => periodMatch(e, sumEls.y4.value, sumEls.m4.value)));
   }
 
   function renderItemChart(){
@@ -1518,6 +1541,8 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
   }
 
   [sumEls.y1, sumEls.pm, sumEls.m1].forEach(el => el.addEventListener('change', () => { cmpTouched = true; renderSummaryCharts(); }));
+  [sumEls.y3, sumEls.m3].forEach(el => el.addEventListener('change', () => { pieTouched = true; renderSummaryCharts(); }));
+  [sumEls.y4, sumEls.m4].forEach(el => el.addEventListener('change', () => { stkTouched = true; renderSummaryCharts(); }));
   [sumEls.y2, sumEls.m2, sumEls.t2].forEach(el => el.addEventListener('change', renderItemChart));
   tabButtons.forEach(btn => {
     if(btn.dataset.tab === 'summary') btn.addEventListener('click', () => { refreshSummaryOptions(); renderSummaryCharts(); renderItemChart(); });
