@@ -224,7 +224,7 @@
   .chart-svg text{ font-family:inherit; fill:var(--text); }
   .chart-svg .ax{ fill:var(--text-muted); font-size:10px; }
   .chart-svg .val{ font-size:9px; font-weight:700; fill:var(--navy); }
-  .chart-svg .val-prev{ font-size:9px; font-weight:700; fill:#4B5563; }
+  .chart-svg .val-prev{ font-size:9px; font-weight:700; fill:#7A838E; }
   .chart-empty{ font-size:12px; color:var(--text-muted); padding:24px 0; text-align:center; }
   .pie-wrap{ display:flex; justify-content:center; }
   .pie-wrap svg{ width:100%; max-width:480px; height:auto; display:block; }
@@ -236,7 +236,14 @@
   .stk-row .nm{ font-weight:600; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .stk-row .tot{ font-weight:700; color:var(--navy); text-align:right; font-variant-numeric:tabular-nums; }
   .stk-bar{ display:flex; height:20px; border-radius:3px; overflow:hidden; background:#EEF0F2; }
-  .stk-bar div{ height:100%; color:#fff; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap; }
+  .stk-bar .stk-seg{ height:100%; flex:0 1 auto; min-width:1px; cursor:pointer; box-shadow:inset -1px 0 0 rgba(255,255,255,0.55); }
+  .stk-bar .stk-seg:hover{ filter:brightness(1.18) saturate(1.1); }
+  .stk-tip{ position:fixed; z-index:150; pointer-events:none; background:#fff; color:var(--text); border:1px solid var(--navy); border-radius:6px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.22); padding:8px 10px; max-width:300px; font-size:12px; line-height:1.35; }
+  .stk-tip[hidden]{ display:none; }
+  .stk-tip .t-vn{ font-weight:700; color:var(--navy); }
+  .stk-tip .t-en{ font-size:11px; color:var(--text-muted); margin-bottom:4px; }
+  .stk-tip .t-row{ display:flex; justify-content:space-between; gap:16px; }
   .items-scroll{ max-height:460px; overflow-y:auto; border:1px solid var(--border); border-radius:4px; padding:4px 8px; }
   .it-row{ display:grid; grid-template-columns:minmax(150px,300px) minmax(0,1fr) 100px; gap:10px; align-items:center; padding:4px 0; border-bottom:1px solid #EEF0F2; font-size:12px; }
   .it-row:last-child{ border-bottom:none; }
@@ -1408,7 +1415,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const cur = TEAMS.map(t => sumBy(curList, t)), prev = TEAMS.map(t => sumBy(prevList, t));
     const max = Math.max.apply(null, cur.concat(prev));
     if(!(max > 0)) return emptyHtml();
-    const PREV_COLOR = '#4B5563';
+    const PREV_COLOR = '#B4BBC4';
     const nm = niceMax(max), W = 1100, H = 284, L = 52, R = 10, T = 22, B = 46;
     const pw = W - L - R, ph = H - T - B, bw = pw / TEAMS.length, barW = bw * 0.36, gap = 2;
     let s = '<div class="stk-legend">' +
@@ -1443,7 +1450,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const total = rows.reduce((s, r) => s + r.val, 0);
     if(!(total > 0)) return emptyHtml();
     // Full pie. Percent inside each slice (white), team name outside in the slice colour with a leader line.
-    const W = 460, H = 300, cx = W / 2, cy = H / 2, R = 96, GAP = 16, MINGAP = 19;
+    const W = 480, H = 340, cx = W / 2, cy = H / 2, R = 96, GAP = 16, MINGAP = 30;
     const pt = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
     const f = n => Math.round(n * 100) / 100;
     let a0 = -Math.PI / 2, s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Portion by team">`;
@@ -1466,20 +1473,22 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       labels.push({ row:row, pct:pct, side:side, e1:e1, e2:e2, y:e2[1] });
       a0 = a1;
     });
-    // spread labels on each side so they never overlap (at least MINGAP px apart), keeping them inside the chart
+    // spread labels on each side: neighbours at least MINGAP px apart, pushed apart evenly (not only downwards)
     [1, -1].forEach(side => {
       const grp = labels.filter(l => l.side === side).sort((a, b) => a.y - b.y);
-      const TOP = 12, BOT = H - 10;
-      for(let i = 0; i < grp.length; i++){
-        grp[i].y = Math.max(grp[i].y, i ? grp[i - 1].y + MINGAP : TOP);
-      }
-      if(grp.length && grp[grp.length - 1].y > BOT){
-        grp[grp.length - 1].y = BOT;
-        for(let i = grp.length - 2; i >= 0; i--) grp[i].y = Math.min(grp[i].y, grp[i + 1].y - MINGAP);
+      const TOP = 12, BOT = H - 12;
+      for(let it = 0; it < 80; it++){
+        let moved = false;
+        for(let i = 1; i < grp.length; i++){
+          const d = grp[i].y - grp[i - 1].y;
+          if(d < MINGAP - 0.01){ const k = (MINGAP - d) / 2; grp[i - 1].y -= k; grp[i].y += k; moved = true; }
+        }
+        grp.forEach(l => { l.y = Math.min(Math.max(l.y, TOP), BOT); });
+        if(!moved) break;
       }
     });
     labels.forEach(l => {
-      const x3 = l.e2[0] + l.side * 18;
+      const x3 = l.e2[0] + l.side * 22;
       s += `<polyline points="${f(l.e1[0])},${f(l.e1[1])} ${f(l.e2[0])},${f(l.e2[1])} ${f(x3)},${f(l.y)}" fill="none" stroke="${l.row.color}" stroke-width="1"/>`;
       const txt = escapeHtml(l.row.team) + (l.pct < 2.5 ? ' ' + l.pct.toFixed(1) + '%' : '');
       s += `<text x="${f(x3 + l.side * 4)}" y="${f(l.y + 4)}" text-anchor="${l.side > 0 ? 'start' : 'end'}" font-size="12" fill="${l.row.color}">${txt}</text>`;
@@ -1487,23 +1496,63 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     return `<div class="pie-wrap">${s}</svg></div>`;
   }
 
+  // One colour per stationery item (stable: based on the item's position in the catalog)
+  function itemColor(vn){
+    let i = ITEMS.findIndex(x => x.vn === vn); if(i < 0) i = 0;
+    return `hsl(${Math.round((i * 137.508) % 360)}, ${58 + (i % 3) * 9}%, ${40 + (i % 2) * 12}%)`;
+  }
   function renderStackChart(list){
+    const order = new Map(ITEMS.map((x, i) => [x.vn, i]));
     const rows = TEAMS.map(t => {
-      const cats = {}; let total = 0;
-      list.filter(e => e.team === t).forEach(e => { const c = entryCost(e); cats[itemCat(e.itemVN)] = (cats[itemCat(e.itemVN)] || 0) + c; total += c; });
-      return { team:t, cats:cats, total:total };
+      const agg = new Map(); let total = 0;
+      list.filter(e => e.team === t).forEach(e => {
+        const c = entryCost(e);
+        const a = agg.get(e.itemVN) || { vn:e.itemVN, qty:0, cost:0 };
+        a.qty += e.qty; a.cost += c; agg.set(e.itemVN, a); total += c;
+      });
+      const items = Array.from(agg.values()).filter(a => a.cost > 0)
+        .sort((a, b) => (order.has(a.vn) ? order.get(a.vn) : 1e9) - (order.has(b.vn) ? order.get(b.vn) : 1e9));
+      return { team:t, items:items, total:total };
     }).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
     if(!rows.length) return emptyHtml();
-    let html = '<div class="stk-legend">' + CATS.map(c => `<span><i class="dot" style="background:${c.color}"></i>${escapeHtml(c.name)}</span>`).join('') + '</div>';
+    let html = '';
     rows.forEach(r => {
-      const segs = CATS.filter(c => r.cats[c.key] > 0).map(c => {
-        const p = r.cats[c.key] / r.total * 100;
-        return `<div style="width:${p}%;background:${c.color}" title="${attr(r.team + ' - ' + c.name + ': ' + fmtVnd(r.cats[c.key]) + ' VND incl. VAT (' + p.toFixed(1) + '%)')}">${p >= 9 ? Math.round(p) + '%' : ''}</div>`;
+      const segs = r.items.map(a => {
+        const it = ITEM_MAP[a.vn] || { en:'' };
+        return `<div class="stk-seg" style="width:${a.cost / r.total * 100}%;background:${itemColor(a.vn)}" ` +
+          `data-vn="${attr(a.vn)}" data-en="${attr(it.en)}" data-qty="${a.qty}" data-amt="${a.cost}"></div>`;
       }).join('');
       html += `<div class="stk-row"><div class="nm" title="${attr(r.team)}">${escapeHtml(r.team)}</div><div class="stk-bar">${segs}</div><div class="tot">${compact(r.total)}</div></div>`;
     });
     return html;
   }
+
+  // Tooltip for the Item by Team chart: Vietnamese name / English name / quantity / amount (incl. VAT)
+  (function(){
+    const tip = document.createElement('div');
+    tip.className = 'stk-tip'; tip.hidden = true;
+    document.body.appendChild(tip);
+    const box = document.getElementById('chartStack');
+    function place(e){
+      const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+      let x = e.clientX + pad, y = e.clientY + pad;
+      if(x + w > window.innerWidth - 8) x = e.clientX - w - pad;
+      if(y + h > window.innerHeight - 8) y = e.clientY - h - pad;
+      tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+    }
+    function show(e){
+      const seg = e.target.closest('.stk-seg');
+      if(!seg){ tip.hidden = true; return; }
+      tip.innerHTML = `<div class="t-vn">${escapeHtml(seg.dataset.vn)}</div>` +
+        (seg.dataset.en ? `<div class="t-en">${escapeHtml(seg.dataset.en)}</div>` : '') +
+        `<div class="t-row"><span>Qty</span><b>${fmtNum(seg.dataset.qty)}</b></div>` +
+        `<div class="t-row"><span>Amount</span><b>${fmtVnd(seg.dataset.amt)} VND</b></div>`;
+      tip.hidden = false; place(e);
+    }
+    box.addEventListener('mousemove', show);
+    box.addEventListener('click', show);
+    box.addEventListener('mouseleave', () => { tip.hidden = true; });
+  })();
 
   function renderSummaryCharts(){
     // Year applies to Current Month. A Previous Month that is the same as or later in the calendar than
