@@ -670,7 +670,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       if(Array.isArray(d.entries)){
         d.entries.forEach(e => {
-          if(!e || !e.itemVN || !e.team || !e.month || !(Number(e.qty) > 0)) return;
+          if(!e || !e.itemVN || !e.team || !e.month || !(Number(e.qty) >= 0)) return;
           upsertEntry({ year: Number(e.year), month: e.month, team: e.team, itemVN: e.itemVN, qty: Number(e.qty) });
         });
         if(d.nextId > nextEntryId) nextEntryId = d.nextId;
@@ -918,7 +918,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       html += `<td ${fz(4, 'cell-num nowrap')}>${it.price === '' ? '' : fmtNum(it.price)}</td>`;
       TEAM_COLS.forEach(c => {
         const q = r[c.team];
-        if(q){
+        if(q !== undefined){
           rowTotal += q; colTotals[c.team] = (colTotals[c.team] || 0) + q;
           html += `<td class="qty-cell"><div class="qc"><span class="qv">${fmtNum(q)}</span>` +
                   `<button class="cell-edit" type="button" data-action="edit" data-item="${attr(name)}" data-team="${attr(c.team)}" title="Revise" aria-label="Revise ${attr(c.team)} quantity">${PENCIL_SVG}</button></div></td>`;
@@ -1030,7 +1030,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       [!monthEl.value, monthEl, 'Month'],
       [!teamEl.value, teamEl, 'Team'],
       [!itemVNEl.value, comboInput, 'Stationery(VN)'],
-      [!(qty !== '' && Number(qty) > 0), qtyEl, 'Qty (> 0)']
+      [!(qty !== '' && (editingId !== null ? Number(qty) >= 0 : Number(qty) > 0)), qtyEl, editingId !== null ? 'Qty (>= 0)' : 'Qty (> 0)']
     ].find(m => m[0]);
     if(missing){
       showToast('Please enter: ' + missing[2], true);
