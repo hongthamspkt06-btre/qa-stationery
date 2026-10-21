@@ -1437,16 +1437,20 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const max = Math.max.apply(null, cur.concat(prev));
     if(!(max > 0)) return emptyHtml();
     const PREV_COLOR = '#B4BBC4';
-    const nm = niceMax(max), W = 1100, H = 284, L = 52, R = 10, T = 22, B = 46;
+    // Few gridlines (~3 intervals), top of the axis just above the max (e.g. max 1M -> 0 / 0.5M / 1M / 1.5M)
+    const p10 = Math.pow(10, Math.floor(Math.log10(max * 1.1 / 3)));
+    const step = ([1, 2, 2.5, 5, 10].map(k => k * p10).find(x => x >= max * 1.1 / 3)) || p10;
+    const ticks = Math.max(1, Math.ceil(max * 1.1 / step - 1e-9));
+    const nm = step * ticks, W = 1100, H = 284, L = 52, R = 10, T = 22, B = 46;
     const pw = W - L - R, ph = H - T - B, bw = pw / TEAMS.length, barW = bw * 0.36, gap = 2;
     let s = '<div class="stk-legend">' +
       `<span><i class="dot" style="background:${PREV_COLOR}"></i>${escapeHtml(prevLabel)} (Previous)</span>` +
       `<span><i class="dot" style="background:linear-gradient(90deg,#1B3A63,#1E8E5A,#3B7DDE)"></i>${escapeHtml(curLabel)} (Current)</span></div>`;
     s += `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Cost by team, previous month vs current month">`;
-    for(let i = 0; i <= 4; i++){
-      const y = T + ph - ph * i / 4;
+    for(let i = 0; i <= ticks; i++){
+      const y = T + ph - ph * i / ticks;
       s += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="#E3E6EA" stroke-width="1"/>`;
-      s += `<text class="ax" x="${L - 6}" y="${y + 3}" text-anchor="end">${compact(nm * i / 4)}</text>`;
+      s += `<text class="ax" x="${L - 6}" y="${y + 3}" text-anchor="end">${compact(step * i)}</text>`;
     }
     TEAMS.forEach((t, i) => {
       const cx = L + i * bw + bw / 2;
@@ -1471,7 +1475,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const total = rows.reduce((s, r) => s + r.val, 0);
     if(!(total > 0)) return emptyHtml();
     // Full pie. Percent inside each slice (white), team name outside in the slice colour with a leader line.
-    const W = 480, H = 340, cx = W / 2, cy = H / 2, R = 96, GAP = 16, MINGAP = 30;
+    const W = 480, H = 340, cx = 135, cy = H / 2, R = 108;
     const pt = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
     const f = n => Math.round(n * 100) / 100;
     let a0 = -Math.PI / 2, s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Portion by team">`;
@@ -1490,29 +1494,15 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
         const ip = pt(R * (pct < 8 ? 0.78 : 0.62), am);
         s += `<text x="${f(ip[0])}" y="${f(ip[1] + 4)}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" pointer-events="none">${pct.toFixed(1)}%</text>`;
       }
-      const side = Math.cos(am) >= 0 ? 1 : -1, e1 = pt(R, am), e2 = pt(R + GAP, am);
-      labels.push({ row:row, pct:pct, side:side, e1:e1, e2:e2, y:e2[1] });
+      labels.push({ row:row, pct:pct });
       a0 = a1;
     });
-    // spread labels on each side: neighbours at least MINGAP px apart, pushed apart evenly (not only downwards)
-    [1, -1].forEach(side => {
-      const grp = labels.filter(l => l.side === side).sort((a, b) => a.y - b.y);
-      const TOP = 12, BOT = H - 12;
-      for(let it = 0; it < 80; it++){
-        let moved = false;
-        for(let i = 1; i < grp.length; i++){
-          const d = grp[i].y - grp[i - 1].y;
-          if(d < MINGAP - 0.01){ const k = (MINGAP - d) / 2; grp[i - 1].y -= k; grp[i].y += k; moved = true; }
-        }
-        grp.forEach(l => { l.y = Math.min(Math.max(l.y, TOP), BOT); });
-        if(!moved) break;
-      }
-    });
-    labels.forEach(l => {
-      const x3 = l.e2[0] + l.side * 22;
-      s += `<polyline points="${f(l.e1[0])},${f(l.e1[1])} ${f(l.e2[0])},${f(l.e2[1])} ${f(x3)},${f(l.y)}" fill="none" stroke="${l.row.color}" stroke-width="1"/>`;
-      const txt = escapeHtml(l.row.team) + (l.pct < 2.5 ? ' ' + l.pct.toFixed(1) + '%' : '');
-      s += `<text x="${f(x3 + l.side * 4)}" y="${f(l.y + 4)}" text-anchor="${l.side > 0 ? 'start' : 'end'}" font-size="12" fill="${l.row.color}">${txt}</text>`;
+    // Legend: one evenly spaced column on the right (team colour square + name + percent), centred vertically
+    const LX = 285, step = Math.min(24, (H - 24) / labels.length), y0 = H / 2 - step * (labels.length - 1) / 2;
+    labels.forEach((l, i) => {
+      const y = y0 + i * step;
+      s += `<rect x="${LX}" y="${f(y - 6)}" width="12" height="12" rx="2" fill="${l.row.color}"/>`;
+      s += `<text x="${LX + 20}" y="${f(y + 4)}" font-size="12" fill="${l.row.color}" font-weight="600">${escapeHtml(l.row.team)}<tspan fill="#5C6670" font-weight="400"> ${l.pct.toFixed(1)}%</tspan></text>`;
     });
     return `<div class="pie-wrap">${s}</svg></div>`;
   }
