@@ -1628,7 +1628,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     box.innerHTML = '<div class="items-scroll">' + rows.map(r => {
       const it = ITEM_MAP[r.vn] || { en:'', unit:'' };
       return `<div class="it-row"><div><div>${escapeHtml(r.vn)}</div><div class="en">${escapeHtml(it.en)}</div></div>` +
-        `<div class="it-bar"><div class="fill" style="width:${Math.max(r.cost / max * 72, 0.5)}%"></div><span class="lbl">${fmtNum(r.qty)}</span></div>` +
+        `<div class="it-bar"><div class="fill" style="width:${Math.max(r.cost / max * 72, 0.5)}%"></div></div>` +
         `<div class="it-val"><b>${fmtVnd(r.cost)}</b><span class="mqty"><br><span class="en">${fmtNum(r.qty)}</span></span></div>` +
         `<div class="it-pct">${total > 0 ? (r.cost / total * 100).toFixed(1) : '0.0'}%</div></div>`;
     }).join('') + '</div>';
