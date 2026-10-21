@@ -248,6 +248,9 @@
   .stk-tip{ position:fixed; z-index:150; pointer-events:none; background:#fff; color:var(--text); border:1px solid var(--navy); border-radius:6px;
     box-shadow:0 6px 18px rgba(0,0,0,0.22); padding:8px 10px; max-width:300px; font-size:12px; line-height:1.35; }
   .stk-tip[hidden]{ display:none; }
+  .pie-seg{ cursor:pointer; transition:filter 0.12s ease; }
+  .pie-seg:hover{ filter:brightness(1.12) saturate(1.1); }
+  .stk-tip .t-dot{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
   .stk-tip .t-vn{ font-weight:700; color:var(--navy); }
   .stk-tip .t-en{ font-size:11px; color:var(--text-muted); margin-bottom:4px; }
   .stk-tip .t-row{ display:flex; justify-content:space-between; gap:16px; }
@@ -1475,7 +1478,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     const total = rows.reduce((s, r) => s + r.val, 0);
     if(!(total > 0)) return emptyHtml();
     // Full pie. Percent inside each slice (white), team name outside in the slice colour with a leader line.
-    const W = 480, H = 340, cx = W / 2, cy = H / 2, R = 96, GAP = 16;
+    const W = 480, H = 340, cx = 135, cy = H / 2, R = 108;
     const pt = (rad, a) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
     const f = n => Math.round(n * 100) / 100;
     let a0 = -Math.PI / 2, s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Portion by team">`;
@@ -1483,47 +1486,27 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
     rows.forEach(row => {
       const span = row.val / total * Math.PI * 2, a1 = a0 + span, am = (a0 + a1) / 2;
       const pct = row.val / total * 100;
-      const tip = `<title>${escapeHtml(row.team)}: ${fmtVnd(row.val)} VND incl. VAT (${pct.toFixed(1)}%)</title>`;
+      const tip = '';
+      const dat = `class="pie-seg" data-team="${attr(row.team)}" data-pct="${pct.toFixed(1)}" data-color="${row.color}"`;
       if(span >= Math.PI * 2 - 1e-6){
-        s += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="${row.color}">${tip}</circle>`;
+        s += `<circle ${dat} cx="${cx}" cy="${cy}" r="${R}" fill="${row.color}"></circle>`;
       } else {
         const p0 = pt(R, a0), p1 = pt(R, a1), large = span > Math.PI ? 1 : 0;
-        s += `<path d="M${cx} ${cy} L${f(p0[0])} ${f(p0[1])} A${R} ${R} 0 ${large} 1 ${f(p1[0])} ${f(p1[1])} Z" fill="${row.color}" stroke="#fff" stroke-width="1.5">${tip}</path>`;
+        s += `<path ${dat} d="M${cx} ${cy} L${f(p0[0])} ${f(p0[1])} A${R} ${R} 0 ${large} 1 ${f(p1[0])} ${f(p1[1])} Z" fill="${row.color}" stroke="#fff" stroke-width="1.5"></path>`;
       }
       if(pct >= 2.5){
         const ip = pt(R * (pct < 8 ? 0.78 : 0.62), am);
         s += `<text x="${f(ip[0])}" y="${f(ip[1] + 4)}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" pointer-events="none">${pct.toFixed(1)}%</text>`;
       }
-      const e1 = pt(R, am), e2 = pt(R + GAP, am);
-      labels.push({ row:row, pct:pct, am:am, e1:e1, e2:e2, nat: Math.cos(am) >= 0 ? 1 : -1 });
+      labels.push({ row:row, pct:pct });
       a0 = a1;
     });
-    // Split the labels evenly between the two sides: a run of consecutive slices goes right, the rest goes left
-    // (start of the run chosen so that most labels stay on their natural side), then each side is spaced evenly.
-    const n = labels.length, k = Math.ceil(n / 2);
-    let bestStart = 0, bestScore = -1;
-    for(let st = 0; st < n; st++){
-      let score = 0;
-      for(let j = 0; j < n; j++){
-        const inRight = ((j - st + n) % n) < k;
-        if(labels[j].nat === (inRight ? 1 : -1)) score++;
-      }
-      if(score > bestScore){ bestScore = score; bestStart = st; }
-    }
-    labels.forEach((l, j) => { l.side = ((j - bestStart + n) % n) < k ? 1 : -1; });
-    const TOP = 14, BOT = H - 14;
-    [1, -1].forEach(side => {
-      const grp = labels.filter(l => l.side === side).sort((a, b) => a.e2[1] - b.e2[1]);
-      if(!grp.length) return;
-      const step = Math.min(34, (BOT - TOP) / Math.max(grp.length - 1, 1));
-      const y0 = cy - step * (grp.length - 1) / 2;
-      grp.forEach((l, i) => { l.y = y0 + i * step; });
-    });
-    labels.forEach(l => {
-      const x3 = cx + l.side * (R + GAP + 22);
-      s += `<polyline points="${f(l.e1[0])},${f(l.e1[1])} ${f(l.e2[0])},${f(l.e2[1])} ${f(x3)},${f(l.y)}" fill="none" stroke="${l.row.color}" stroke-width="1"/>`;
-      const txt = escapeHtml(l.row.team) + (l.pct < 2.5 ? ' ' + l.pct.toFixed(1) + '%' : '');
-      s += `<text x="${f(x3 + l.side * 4)}" y="${f(l.y + 4)}" text-anchor="${l.side > 0 ? 'start' : 'end'}" font-size="12" fill="${l.row.color}">${txt}</text>`;
+    // Legend: one evenly spaced column on the right (team colour square + name + percent), centred vertically
+    const LX = 285, step = Math.min(24, (H - 24) / labels.length), y0 = H / 2 - step * (labels.length - 1) / 2;
+    labels.forEach((l, i) => {
+      const y = y0 + i * step;
+      s += `<rect x="${LX}" y="${f(y - 6)}" width="12" height="12" rx="2" fill="${l.row.color}"/>`;
+      s += `<text x="${LX + 20}" y="${f(y + 4)}" font-size="12" fill="${l.row.color}" font-weight="600">${escapeHtml(l.row.team)}<tspan fill="#5C6670" font-weight="400"> ${l.pct.toFixed(1)}%</tspan></text>`;
     });
     return `<div class="pie-wrap">${s}</svg></div>`;
   }
@@ -1582,6 +1565,31 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
         (seg.dataset.en ? `<div class="t-en">${escapeHtml(seg.dataset.en)}</div>` : '') +
         `<div class="t-row"><span>Qty</span><b>${fmtNum(seg.dataset.qty)}</b></div>` +
         `<div class="t-row"><span>Amount</span><b>${fmtVnd(seg.dataset.amt)} VND</b></div>`;
+      tip.hidden = false; place(e);
+    }
+    box.addEventListener('mousemove', show);
+    box.addEventListener('click', show);
+    box.addEventListener('mouseleave', () => { tip.hidden = true; });
+  })();
+
+  // Tooltip for the Portion by Team chart: team + percent
+  (function(){
+    const tip = document.createElement('div');
+    tip.className = 'stk-tip'; tip.hidden = true;
+    document.body.appendChild(tip);
+    const box = document.getElementById('chartPie');
+    function place(e){
+      const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+      let x = e.clientX + pad, y = e.clientY + pad;
+      if(x + w > window.innerWidth - 8) x = e.clientX - w - pad;
+      if(y + h > window.innerHeight - 8) y = e.clientY - h - pad;
+      tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+    }
+    function show(e){
+      const seg = e.target.closest('.pie-seg');
+      if(!seg){ tip.hidden = true; return; }
+      tip.innerHTML = `<div class="t-vn"><i class="t-dot" style="background:${attr(seg.dataset.color)}"></i>${escapeHtml(seg.dataset.team)}</div>` +
+        `<div class="t-row"><span>Portion</span><b>${escapeHtml(seg.dataset.pct)}%</b></div>`;
       tip.hidden = false; place(e);
     }
     box.addEventListener('mousemove', show);
