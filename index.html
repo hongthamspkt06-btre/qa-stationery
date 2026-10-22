@@ -779,6 +779,7 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       setCatalog(j.items);
       try{ localStorage.setItem(CATALOG_KEY, JSON.stringify(j.items)); }catch(e){}
       applyServerEntries(j.entries);
+      if(!silent) initialPeriod();                 // show the latest month that has data
       lastLoadAt = Date.now();
       setSync('synced');
       afterDataChanged();
@@ -842,12 +843,18 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
   function setPeriod(year, month){
     searchYear.value = year; searchMonth.value = month;
   }
+  // Default period = the latest month that has data (by year, then month)
+  function latestDataPeriod(){
+    let best = null;
+    entries.forEach(e => {
+      const k = Number(e.year) * 12 + MONTHS.indexOf(e.month);
+      if(MONTHS.indexOf(e.month) >= 0 && (best === null || k > best.k)) best = { k: k, year: Number(e.year), month: e.month };
+    });
+    return best;
+  }
   function initialPeriod(){
-    if(!lastPeriod && entries.length){                          // older saved data without lastPeriod
-      const e = entries.reduce((m, x) => x.id > m.id ? x : m, entries[0]);
-      lastPeriod = { year: e.year, month: e.month };
-    }
-    if(lastPeriod) setPeriod(lastPeriod.year, lastPeriod.month); else defaultPeriod();
+    const lp = latestDataPeriod();
+    if(lp) setPeriod(lp.year, lp.month); else defaultPeriod();
   }
   function defaultPeriod(){
     const now = new Date();
