@@ -1185,7 +1185,12 @@ const XL_TPL = {"s1head": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\
       `A${14 + d}:F${14 + d}`, `H${14 + d}:J${14 + d}`, `A${15 + d}:F${15 + d}`, `H${15 + d}:J${15 + d}`, `A${16 + d}:F${16 + d}`, `H${16 + d}:J${16 + d}`];
     // D8 = "In: month/year" chosen in the Year / Month dropdowns; I9 = date of export (dd/mm/yyyy)
     const selY = searchYear.value.trim(), selM = searchMonth.value;
-    const inText = 'In: ' + (selM ? String(MONTHS.indexOf(selM) + 1).padStart(2, '0') + (selY ? '/' + selY : '') : (selY || 'All'));
+    // "In:" = month after the selected period (Oct 2026 -> Nov/2026; Dec 2026 -> Jan/2027)
+    let inText;
+    if(selM){
+      const mi = MONTHS.indexOf(selM), nextM = MONTHS[(mi + 1) % 12];
+      inText = 'In: ' + nextM + (selY ? '/' + (mi === 11 ? Number(selY) + 1 : selY) : '');
+    } else inText = 'In: ' + (selY || 'All');
     const now = new Date();
     const expDate = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
     const s1headFilled = T.s1head
